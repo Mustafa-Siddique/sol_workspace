@@ -3,24 +3,20 @@
 pragma solidity ^0.8.15;
 
 contract daySeven {
-
-    uint256 number = 5324;
-    bytes len;
-
-    function demo() public pure returns(uint){
-        len = number;
-        return len.length;
-    }
     
-    // function digitSum(int256 n) public pure returns(int256){
+    function digitSum(int256 n) public pure returns(int256){
+        require(n > 0, "Value entered should be a natural number.");
 
-    //     int256 result;
+        int256 remainder;
+        int256 result;
 
-    //     for(int256 cycle = 0; cycle <= bytes(n).length - 1; cycle++){
-    //         result += n[cycle];
-    //     }
+        while (n > 0){
+            remainder = n % 10; // Returns the last digit of any number
+            result += remainder;
+            n /= 10;
+        }
 
-    //     return result;
-    // }
+        return result;
+    }
 
 }
