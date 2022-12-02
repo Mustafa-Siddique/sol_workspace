@@ -10,14 +10,22 @@ contract votingFactory{
         address deployedAddress;
         string electionName;
         string electionDesc;
+        address authorityAddress;
     }
 
-    function createElection(string memory _alias, string memory title, string memory description) public {
+    mapping(uint8=>electionDetails) _electionDetails;
+
+    uint8 public numElection = 1;
+
+    function createElection(string memory title, string memory description) public {
         address electionAddress = address(new election(msg.sender, title, description));
 
-        electionDetails[_alias].deployedAddress = electionAddress;
-        electionDetails[_alias].electionName = title;
-        electionDetails[_alias].electionDesc = description;
+        _electionDetails[numElection] = electionDetails(electionAddress, title, description, msg.sender);
+        numElection++;
+    }
+
+    function getElection(uint8 id) public view returns(electionDetails memory){
+        return _electionDetails[id];
     }
 
 }
