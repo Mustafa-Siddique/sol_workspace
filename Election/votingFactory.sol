@@ -15,10 +15,10 @@ contract votingFactory{
 
     mapping(uint8=>electionDetails) _electionDetails;
 
-    uint8 public numElection = 1;
+    uint8 numElection = 1;
 
-    function createElection(string memory title, string memory description) public {
-        address electionAddress = address(new election(msg.sender, title, description));
+    function createElection(string memory title, string memory description, uint256 endTime) public {
+        address electionAddress = address(new election(msg.sender, title, description, endTime));
 
         _electionDetails[numElection] = electionDetails(electionAddress, title, description, msg.sender);
         numElection++;
