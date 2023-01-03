@@ -4,6 +4,8 @@ pragma solidity ^0.8.15;
 // Enum for the different user types in the PMS
 enum UserType {
     HOSPITAL,
+    HOSPITAL2,
+    HOSPITAL3,
     DOCTOR,
     PATIENT
 }
@@ -108,13 +110,15 @@ contract PatientManagementSystem {
     }
     // Function to register a new hospital
     function addHospital(
-        bytes32 hospitalName,
-        bytes32 hospitalAddress,
-        bytes32 hospitalContact
+    bytes32 hospitalName,
+    bytes32 hospitalAddress,
+    bytes32 hospitalContact
     ) public {
         // Only superusers are allowed to register hospitals
         require(
-            userTypes[msg.sender] == UserType.HOSPITAL,
+            userTypes[msg.sender] == UserType.HOSPITAL || // current superuser
+            userTypes[msg.sender] == UserType.HOSPITAL2 || // additional superuser
+            userTypes[msg.sender] == UserType.HOSPITAL3,   // additional superuser
             "Only superusers are allowed to register hospitals."
         );
 
@@ -230,7 +234,7 @@ contract PatientManagementSystem {
             notes
         );
     }
-// Function to add a doctor to a hospital
+    // Function to add a doctor to a hospital
     function addDoctorToHospital(address doctor, uint256 hospitalId) public {
         // Only superusers are allowed to add doctors to hospitals
         require(
@@ -241,6 +245,17 @@ contract PatientManagementSystem {
         // Set the Ethereum address of the doctor to the doctor ID and hospital ID in the userTypes and hospitalIdsForAddresses mappings
         userTypes[doctor] = UserType.DOCTOR;
         hospitalIdsForAddresses[doctor] = hospitalId;
+    }
+    // Set the HOSPITAL2 or HOSPITAL3 constants for a particular address
+    function setSuperuser(address _address, UserType _userType) public {
+        // Only the current superuser is allowed to set other superusers
+        require(
+            userTypes[msg.sender] == UserType.HOSPITAL,
+            "Only the current superuser is allowed to set other superusers."
+        );
+
+        // Set the user type for the specified address
+        userTypes[_address] = _userType;
     }
 
     // Function to get the user type for an Ethereum address
