@@ -23,6 +23,7 @@ struct Hospital {
 struct Doctor {
     bytes32 name;
     uint256 hospitalId;
+    address wallet;
 }
 
 // Struct for storing patient information
@@ -37,6 +38,8 @@ struct MedicalRecord {
     bytes32 prescription;
     bytes32 notes;
 }
+
+import "./console.sol";
 
 // PMS contract
 contract PatientManagementSystem {
@@ -74,7 +77,10 @@ contract PatientManagementSystem {
     mapping(address => uint256) public doctorIdsForAddresses;
 
     // Counter for generating unique IDs
-    uint256 public idCounter;
+    uint256 public patientIdCounter;
+    uint256 public hospitalIdCounter;
+    uint256 public doctorIdCounter;
+    uint256 public medicalIdCounter;
 
     // Event for logging new hospital registration
     event NewHospitalRegistered(uint256 hospitalId, bytes32 hospitalName);
@@ -83,7 +89,8 @@ contract PatientManagementSystem {
     event NewDoctorRegistered(
         uint256 doctorId,
         bytes32 doctorName,
-        uint256 hospitalId
+        uint256 hospitalId,
+        address wallet
     );
 
     // Event for logging new patient registration
@@ -104,7 +111,7 @@ contract PatientManagementSystem {
     // Constructor function for initializing the contract
     constructor() {
         // Add the contract owner as the initial hospital
-        addHospital("Hospital 1", "Address 1", "Contact 1", msg.sender);
+        addHospital("Hospital 1", "Address 1", "Contact 1", 0xdD870fA1b7C4700F2BD7f44238821C26f7392148);
 
         // Set the contract owner as the initial superuser
         userTypes[msg.sender] = UserType.SUPERUSER;
@@ -126,8 +133,8 @@ contract PatientManagementSystem {
         );
 
         // Generate a unique ID for the new hospital
-        uint256 hospitalId = idCounter;
-        idCounter++;
+        uint256 hospitalId = hospitalIdCounter;
+        hospitalIdCounter++;
 
         // Add the new hospital to the hospitals mapping
         hospitals[hospitalId] = Hospital(
@@ -149,30 +156,30 @@ contract PatientManagementSystem {
     }
 
     // Function to register a new doctor
-    function addDoctor(bytes32 doctorName, uint256 hospitalId) public {
+    function addDoctor(bytes32 doctorName, uint256 hospitalId, address wallet) public {
         // Only hospitals are allowed to register doctors
         require(
-            userTypes[msg.sender] == UserType.SUPERUSER &&
+            userTypes[msg.sender] == UserType.HOSPITAL &&
             hospitalIdsForAddresses[msg.sender] == hospitalId,
             "Only hospitals are allowed to register doctors."
         );
 
         // Generate a unique ID for the new doctor
-        uint256 doctorId = idCounter;
-        idCounter++;
+        uint256 doctorId = doctorIdCounter;
+        doctorIdCounter++;
 
         // Add the new doctor to the doctors mapping
-        doctors[doctorId] = Doctor(doctorName, hospitalId);
+        doctors[doctorId] = Doctor(doctorName, hospitalId, wallet);
 
         // Add the doctor ID to the doctorIds array
         doctorIds.push(doctorId);
 
         // Set the Ethereum address of the doctor to the doctor ID and hospital ID in the userTypes and hospitalIdsForAddresses mappings
-        userTypes[msg.sender] = UserType.DOCTOR;
+        userTypes[wallet] = UserType.DOCTOR;
         hospitalIdsForAddresses[msg.sender] = hospitalId;
 
         // Emit the NewDoctorRegistered event
-        emit NewDoctorRegistered(doctorId, doctorName, hospitalId);
+        emit NewDoctorRegistered(doctorId, doctorName, hospitalId, wallet);
     }
     // Function to register a new patient
     function addPatient(bytes32 patientName, uint256 doctorId) public {
@@ -184,8 +191,8 @@ contract PatientManagementSystem {
         );
 
         // Generate a unique ID for the new patient
-        uint256 patientId = idCounter;
-        idCounter++;
+        uint256 patientId = patientIdCounter;
+        patientIdCounter++;
 
         // Add the new patient to the patients mapping
         patients[patientId] = Patient(patientName, doctorId);
@@ -217,8 +224,8 @@ contract PatientManagementSystem {
         );
 
         // Generate a unique ID for the new medical record
-        uint256 medicalRecordId = idCounter;
-        idCounter++;
+        uint256 medicalRecordId = medicalIdCounter;
+        medicalIdCounter++;
 
         // Add the new medical record to the medicalRecords mapping
         medicalRecords[medicalRecordId] = MedicalRecord(
@@ -239,17 +246,17 @@ contract PatientManagementSystem {
         );
     }
     // Function to add a doctor to a hospital
-    function addDoctorToHospital(address doctor, uint256 hospitalId) public {
+    // function addDoctorToHospital(address doctor, uint256 hospitalId) public {
         // Only superusers are allowed to add doctors to hospitals
-        require(
-            userTypes[msg.sender] == UserType.SUPERUSER,
-            "Only superusers are allowed to add doctors to hospitals."
-        );
+        // require(
+        //     userTypes[msg.sender] == UserType.SUPERUSER,
+        //     "Only superusers are allowed to add doctors to hospitals."
+        // );
 
         // Set the Ethereum address of the doctor to the doctor ID and hospital ID in the userTypes and hospitalIdsForAddresses mappings
-        userTypes[doctor] = UserType.DOCTOR;
-        hospitalIdsForAddresses[doctor] = hospitalId;
-    }
+    //     userTypes[doctor] = UserType.DOCTOR;
+    //     hospitalIdsForAddresses[doctor] = hospitalId;
+    // }
     // Set the SUPERUSER2 or SUPERUSER3 constants for a particular address
     function setSuperuser(address _address, UserType _userType) public {
         // Only the current superuser is allowed to set other superusers
@@ -295,11 +302,13 @@ contract PatientManagementSystem {
     // Function to get the information for a doctor
     function getDoctorInfo(uint256 doctorId) public view returns (
         bytes32 doctorName,
-        uint256 hospitalId
+        uint256 hospitalId,
+        address _wallet
     ) {
         return (
             doctors[doctorId].name,
-            doctors[doctorId].hospitalId
+            doctors[doctorId].hospitalId,
+            doctors[doctorId].wallet
         );
     }
 
