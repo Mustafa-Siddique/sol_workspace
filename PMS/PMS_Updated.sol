@@ -3,6 +3,7 @@ pragma solidity ^0.8.15;
 
 // Enum for the different user types in the PMS
 enum UserType {
+    UNREGISTERED,
     SUPERUSER,
     SUPERUSER2,
     SUPERUSER3,
@@ -105,11 +106,11 @@ contract PatientManagementSystem {
 
     // Constructor function for initializing the contract
     constructor() {
-        // Add the contract owner as the initial hospital
-        addHospital("Hospital 1", "Address 1", "Contact 1", 0xdD870fA1b7C4700F2BD7f44238821C26f7392148);
-
         // Set the contract owner as the initial superuser
         userTypes[msg.sender] = UserType.SUPERUSER;
+        
+        // Add the contract owner as the initial hospital
+        addHospital("Hospital 1", "Address 1", "Contact 1", 0xdD870fA1b7C4700F2BD7f44238821C26f7392148);
         // hospitalIdsForAddresses[msg.sender] = 0;
     }
     
