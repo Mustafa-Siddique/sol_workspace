@@ -110,7 +110,7 @@ contract PatientManagementSystem {
         userTypes[msg.sender] = UserType.SUPERUSER;
         
         // Add the contract owner as the initial hospital
-        addHospital("Hospital 1", "Address 1", "Contact 1", 0xdD870fA1b7C4700F2BD7f44238821C26f7392148);
+        addHospital("Hospital 1", "Street Unknown", "+123456789", 0xE73359416A1A8De4Cc59763bE4CbCEE288a399CF);
         // hospitalIdsForAddresses[msg.sender] = 0;
     }
     
