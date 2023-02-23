@@ -28,4 +28,12 @@ contract votingFactory{
         return _electionDetails[id];
     }
 
+    function getAllElections() public view returns (electionDetails[] memory) {
+        electionDetails[] memory elections = new electionDetails[](numElection - 1);
+        for (uint8 i = 1; i < numElection; i++) {
+            elections[i - 1] = _electionDetails[i];
+        }
+        return elections;
+    }
+
 }
