@@ -355,34 +355,6 @@ contract Chaintusker is ReentrancyGuard {
         return projects[_projectId];
     }
 
-    // function getProject(bytes12 _projectId)
-    //     public
-    //     view
-    //     returns (
-    //         address payable,
-    //         address payable,
-    //         bytes32,
-    //         string memory,
-    //         uint256,
-    //         uint256,
-    //         uint256,
-    //         uint256[] memory,
-    //         bool[] memory
-    //     )
-    // {
-    //     return (
-    //         projects[_projectId].buyer,
-    //         projects[_projectId].seller,
-    //         projects[_projectId].projectHash,
-    //         projects[_projectId].description,
-    //         projects[_projectId].startedAt,
-    //         projects[_projectId].deadline,
-    //         projects[_projectId].remainingBudget,
-    //         projects[_projectId].milestoneRewards,
-    //         projects[_projectId].milestoneCompleted
-    //     );
-    // }
-
     // Get project milestones
     function getProjectMilestones(bytes12 _projectId)
         public
