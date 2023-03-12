@@ -9,6 +9,19 @@ contract election {
     uint256 electionEndTime;
     bool electionEnded;
 
+    // modifier to prevent adding same voter twice using msg.sender
+    modifier onlyOnce() {
+        bool found = false;
+        for (uint8 i = 1; i < numVoters; i++) {
+            if (voters[i].wallet == msg.sender) {
+                found = true;
+                break;
+            }
+        }
+        require(!found, "You have already registered.");
+        _;
+    }
+
     constructor(
         address _owner,
         string memory _title,
@@ -85,7 +98,11 @@ contract election {
         string memory _address,
         string memory photo,
         string memory email
-    ) public {
+    ) public onlyOnce {
+        require(
+            owner != msg.sender,
+            "You don't have the authority to create a Voter."
+        );
         uint8 _id = numVoters;
         voters[_id] = Voter(
             _name,
@@ -138,7 +155,20 @@ contract election {
         return ("You have voted successfully!");
     }
 
+    function endElection() public returns (string memory) {
+        require(
+            msg.sender == owner,
+            "You don't have authority to end election."
+        );
+        require(!electionEnded, "Election already ended.");
+        require(block.timestamp >= electionEndTime, "Election not ended yet.");
+
+        electionEnded = true;
+        return ("Election ended successfully!");
+    }
+
     function winnerDetails() public view returns (politicalParty memory) {
+        require(electionEnded, "Election not ended yet.");
         uint8 partyId;
         for (uint8 i = 1; i < numParties; i++) {
             uint16 tempVoteCount = 0;
@@ -156,5 +186,15 @@ contract election {
         returns (string memory, string memory)
     {
         return (electionName, electionDesc);
+    }
+
+    // Check if voter is registered using wallet address and return voter id
+    function isRegistered(address _wallet) public view returns (uint8) {
+        for (uint8 i = 1; i < numVoters; i++) {
+            if (voters[i].wallet == _wallet) {
+                return i;
+            }
+        }
+        return 0;
     }
 }
