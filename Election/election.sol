@@ -121,6 +121,7 @@ contract election {
         numVoters++;
     }
 
+    // Upload voter verification image to IPFS and store the hash in the contract
     function uploadVerification(string memory assetURI, uint8 _voterId) public {
         require(
             msg.sender == voters[_voterId].wallet,
