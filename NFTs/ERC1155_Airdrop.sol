@@ -68,6 +68,13 @@ contract MyERC1155 {
         _mint(account, id, amount);
     }
 
+    // Update total supply function of NFTs id onlyOwner
+    function updateTotalSupply(uint256 id, uint256 newTotalSupply) external onlyOwner {
+        require(newTotalSupply > _balances[id][msg.sender], "New total supply must be greater than current balance");
+
+        _mint(msg.sender, id, newTotalSupply - _balances[id][msg.sender]);
+    }
+
     // Burn function
     function burn(address account, uint256 id, uint256 amount) external onlyOwner {
         require(account != address(0), "Burn from the zero address");
