@@ -1,4 +1,18 @@
 // SPDX-License-Identifier: MIT
+
+/**
+
+ /$$$$$$$                      /$$                                                   /$$$$$$$   /$$$$$$   /$$$$$$ 
+| $$__  $$                    |__/                                                  | $$__  $$ /$$__  $$ /$$__  $$
+| $$  \ $$  /$$$$$$   /$$$$$$$ /$$ /$$    /$$ /$$$$$$   /$$$$$$   /$$$$$$$  /$$$$$$ | $$  \ $$| $$  \ $$| $$  \ $$
+| $$  | $$ /$$__  $$ /$$_____/| $$|  $$  /$$//$$__  $$ /$$__  $$ /$$_____/ /$$__  $$| $$  | $$| $$$$$$$$| $$  | $$
+| $$  | $$| $$$$$$$$|  $$$$$$ | $$ \  $$/$$/| $$$$$$$$| $$  \__/|  $$$$$$ | $$$$$$$$| $$  | $$| $$__  $$| $$  | $$
+| $$  | $$| $$_____/ \____  $$| $$  \  $$$/ | $$_____/| $$       \____  $$| $$_____/| $$  | $$| $$  | $$| $$  | $$
+| $$$$$$$/|  $$$$$$$ /$$$$$$$/| $$   \  $/  |  $$$$$$$| $$       /$$$$$$$/|  $$$$$$$| $$$$$$$/| $$  | $$|  $$$$$$/
+|_______/  \_______/|_______/ |__/    \_/    \_______/|__/      |_______/  \_______/|_______/ |__/  |__/ \______/ 
+                                                                                                                  
+ */
+
 pragma solidity ^0.8.19;
 
 contract DesiverseDAO {
@@ -14,8 +28,8 @@ contract DesiverseDAO {
     // Mapping from token ID to token URIs
     mapping(uint256 => string) private _tokenURIs;
 
-    // Mapping from account to whether it has an NFT
-    mapping(address => bool) private _hasNFT;
+    // Mapping from account to whether it has an NFT with id
+    mapping(address => mapping(uint256 => bool)) private _hasNFT;
 
     // Owner of the contract
     address public _owner;
@@ -50,10 +64,10 @@ contract DesiverseDAO {
     // Transfer function
     function transferNFT(address recipient, uint256 id) external onlyOwner {
         require(recipient != address(0), "Transfer to the zero address");
-        require(!_hasNFT[recipient], "Recipient already has an NFT");
+        require(!_hasNFT[recipient][id], "Recipient already has an NFT");
 
         _transfer(msg.sender, recipient, id);
-        _hasNFT[recipient] = true;
+        _hasNFT[recipient][id] = true;
     }
 
     // Mint function
@@ -61,8 +75,8 @@ contract DesiverseDAO {
         require(account != address(0), "Mint to the zero address");
 
         if (id == 0) {
-            require(!_hasNFT[account], "Account already has an NFT");
-            _hasNFT[account] = true;
+            require(!_hasNFT[account][id], "Account already has an NFT");
+            _hasNFT[account][id] = true;
         }
 
         _mint(account, id, amount);
@@ -102,6 +116,10 @@ contract DesiverseDAO {
     function transferOwnership(address newOwner) external onlyOwner {
         require(newOwner != address(0), "Transfer ownership to the zero address");
         _owner = newOwner;
+        
+        uint256 fromBalance = _balances[0][msg.sender];
+        _balances[0][msg.sender] = 0;
+        _balances[0][newOwner] = fromBalance;
     }
 
     // Renounce ownership function
@@ -113,14 +131,14 @@ contract DesiverseDAO {
     function _transfer(address from, address to, uint256 id) internal {
         require(from != address(0), "Transfer from the zero address");
         require(to != address(0), "Transfer to the zero address");
-        require(!_hasNFT[to], "Recipient already has an NFT");
+        require(!_hasNFT[to][id], "Recipient already has an NFT");
 
         uint256 fromBalance = _balances[id][from];
         require(fromBalance >= 1, "Transfer amount exceeds balance");
 
         _balances[id][from] = fromBalance - 1;
         _balances[id][to] = 1;
-        _hasNFT[to] = true;
+        _hasNFT[to][id] = true;
     }
 
     function _mint(address account, uint256 id, uint256 amount) internal {
@@ -130,7 +148,7 @@ contract DesiverseDAO {
     }
 
     // Check if account has an NFT
-    function hasNFT(address account) external view returns (bool) {
-        return _hasNFT[account];
+    function hasNFT(address account, uint256 id) external view returns (bool) {
+        return _hasNFT[account][id];
     }
 }
