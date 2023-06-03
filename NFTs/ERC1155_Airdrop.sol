@@ -115,9 +115,11 @@ contract DesiverseDAO {
         require(to != address(0), "Transfer to the zero address");
         require(!_hasNFT[to], "Recipient already has an NFT");
 
-        _balances[id][from] = 0;
+        uint256 fromBalance = _balances[id][from];
+        require(fromBalance >= 1, "Transfer amount exceeds balance");
+
+        _balances[id][from] = fromBalance - 1;
         _balances[id][to] = 1;
-        _hasNFT[from] = false;
         _hasNFT[to] = true;
     }
 
