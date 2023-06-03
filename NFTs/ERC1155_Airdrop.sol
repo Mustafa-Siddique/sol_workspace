@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-contract MyERC1155 {
+contract DesiverseDAO {
     // Total supply of NFTs
-    uint256 public constant TOTAL_SUPPLY = 1111;
+    uint256 public constant totalSupply = 1111;
 
     // Mapping from token ID to account balances
     mapping(uint256 => mapping(address => uint256)) private _balances;
@@ -23,7 +23,7 @@ contract MyERC1155 {
     // Constructor
     constructor() {
         _owner = msg.sender;
-        _mint(msg.sender, 0, TOTAL_SUPPLY);
+        _mint(msg.sender, 0, totalSupply);
     }
 
     // Modifiers
