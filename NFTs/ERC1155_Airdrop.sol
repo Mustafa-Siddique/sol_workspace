@@ -126,4 +126,9 @@ contract MyERC1155 {
 
         _balances[id][account] += amount;
     }
+
+    // Check if account has an NFT
+    function hasNFT(address account) external view returns (bool) {
+        return _hasNFT[account];
+    }
 }
