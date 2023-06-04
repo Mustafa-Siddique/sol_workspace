@@ -35,10 +35,10 @@ contract DesiverseDAO {
     address public _owner;
 
     // Name of the contract
-    string public name = "DesiverseDAO Airdrop NFTs";
+    string private _name = "DesiverseDAO Airdrop NFTs";
 
     // Symbol of the contract
-    string public symbol = "DDANFT";
+    string private _symbol = "DDANFT";
 
     // Events
     event Transfer(address indexed from, address indexed to, uint256 indexed id);
@@ -72,14 +72,38 @@ contract DesiverseDAO {
         return _operatorApprovals[account][operator];
     }
 
-    // Transfer function
-    function transferNFT(address recipient, uint256 id) external onlyOwner {
-        require(recipient != address(0), "Transfer to the zero address");
-        require(!_hasNFT[recipient][id], "Recipient already has an NFT");
+    // Safe transfer function
+    function safeTransferFrom(address from, address to, uint256 id) external onlyOwner {
+        require(from != address(0), "Transfer from the zero address");
+        require(to != address(0), "Transfer to the zero address");
+        require(!_hasNFT[to][id], "Recipient already has an NFT");
 
-        _transfer(msg.sender, recipient, id);
-        _hasNFT[recipient][id] = true;
-        emit Transfer(msg.sender, recipient, id);
+        uint256 fromBalance = _balances[id][from];
+        require(fromBalance >= 1, "Transfer amount exceeds balance");
+
+        _balances[id][from] = fromBalance - 1;
+        _balances[id][to] = 1;
+        _hasNFT[to][id] = true;
+        emit Transfer(from, to, id);
+    }
+
+    // Safe batch transfer function
+    function safeBatchTransferFrom(address from, address to, uint256[] memory ids) external onlyOwner {
+        require(from != address(0), "Transfer from the zero address");
+        require(to != address(0), "Transfer to the zero address");
+
+        for (uint256 i = 0; i < ids.length; i++) {
+            uint256 id = ids[i];
+            require(!_hasNFT[to][id], "Recipient already has an NFT");
+
+            uint256 fromBalance = _balances[id][from];
+            require(fromBalance >= 1, "Transfer amount exceeds balance");
+
+            _balances[id][from] = fromBalance - 1;
+            _balances[id][to] = 1;
+            _hasNFT[to][id] = true;
+            emit Transfer(from, to, id);
+        }
     }
 
     // Mint function
@@ -162,5 +186,32 @@ contract DesiverseDAO {
     // Check if account has an NFT
     function hasNFT(address account, uint256 id) external view returns (bool) {
         return _hasNFT[account][id];
+    }
+
+    // Function to withdraw token sent to the contract
+    function withdrawToken(address token, uint256 amount) external onlyOwner {
+        require(token != address(0), "Withdraw token to the zero address");
+        require(amount > 0, "Withdraw amount must be greater than zero");
+
+        (bool success, ) = token.call(abi.encodeWithSignature("transfer(address,uint256)", msg.sender, amount));
+        require(success, "Transfer failed");
+    }
+
+    // Function to withdraw ether sent to the contract
+    function withdrawEther(uint256 amount) external onlyOwner {
+        require(amount > 0, "Withdraw amount must be greater than zero");
+
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+
+    // Contract name function
+    function name() external view returns (string memory) {
+        return _name;
+    }
+
+    // Contract symbol function
+    function symbol() external view returns (string memory) {
+        return _symbol;
     }
 }
