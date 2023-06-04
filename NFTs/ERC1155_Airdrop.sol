@@ -34,6 +34,16 @@ contract DesiverseDAO {
     // Owner of the contract
     address public _owner;
 
+    // Name of the contract
+    string public name = "DesiverseDAO Airdrop NFTs";
+
+    // Symbol of the contract
+    string public symbol = "DDANFT";
+
+    // Events
+    event Transfer(address indexed from, address indexed to, uint256 indexed id);
+    event ApprovalForAll(address indexed account, address indexed operator, bool approved);
+
     // Constructor
     constructor() {
         _owner = msg.sender;
@@ -54,6 +64,7 @@ contract DesiverseDAO {
     // Set approval function
     function setApprovalForAll(address operator, bool approved) external {
         _operatorApprovals[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
     }
 
     // Approval function
@@ -68,6 +79,7 @@ contract DesiverseDAO {
 
         _transfer(msg.sender, recipient, id);
         _hasNFT[recipient][id] = true;
+        emit Transfer(msg.sender, recipient, id);
     }
 
     // Mint function
