@@ -32,7 +32,11 @@ contract DesiverseDAO {
     mapping(address => mapping(uint256 => bool)) private _hasNFT;
 
     // Owner of the contract
-    address public _owner;
+    address private _owner;
+
+    // 2 Moderator of the contract
+    address private _moderator1;
+    address private _moderator2;
 
     // Name of the contract
     string private _name = "DesiverseDAO Airdrop NFTs";
@@ -41,8 +45,22 @@ contract DesiverseDAO {
     string private _symbol = "DDANFT";
 
     // Events
-    event Transfer(address indexed from, address indexed to, uint256 indexed id);
-    event ApprovalForAll(address indexed account, address indexed operator, bool approved);
+    event Transfer(
+        address indexed from,
+        address indexed to,
+        uint256 indexed id
+    );
+    event TransferBatch(
+        address indexed from,
+        address indexed to,
+        uint256[] ids,
+        uint256[] amounts
+    );
+    event ApprovalForAll(
+        address indexed account,
+        address indexed operator,
+        bool approved
+    );
 
     // Constructor
     constructor() {
@@ -56,8 +74,30 @@ contract DesiverseDAO {
         _;
     }
 
+    modifier onlyModerator() {
+        require(
+            msg.sender == _moderator1 || msg.sender == _moderator2,
+            "Caller is not a moderator"
+        );
+        _;
+    }
+
+    // Modifier to allow only owner or moderator to transfer NFTs
+    modifier onlyOwnerOrModerator() {
+        require(
+            msg.sender == _owner ||
+                msg.sender == _moderator1 ||
+                msg.sender == _moderator2,
+            "Caller is not the owner or a moderator"
+        );
+        _;
+    }
+
     // Balance function
-    function balanceOf(address account, uint256 id) external view returns (uint256) {
+    function balanceOf(
+        address account,
+        uint256 id
+    ) external view returns (uint256) {
         return _balances[id][account];
     }
 
@@ -68,46 +108,54 @@ contract DesiverseDAO {
     }
 
     // Approval function
-    function isApprovedForAll(address account, address operator) external view returns (bool) {
+    function isApprovedForAll(
+        address account,
+        address operator
+    ) external view returns (bool) {
         return _operatorApprovals[account][operator];
     }
 
     // Safe transfer function
-    function safeTransferFrom(address from, address to, uint256 id) external onlyOwner {
-        require(from != address(0), "Transfer from the zero address");
-        require(to != address(0), "Transfer to the zero address");
-        require(!_hasNFT[to][id], "Recipient already has an NFT");
-
-        uint256 fromBalance = _balances[id][from];
-        require(fromBalance >= 1, "Transfer amount exceeds balance");
-
-        _balances[id][from] = fromBalance - 1;
-        _balances[id][to] = 1;
-        _hasNFT[to][id] = true;
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) external onlyOwnerOrModerator {
+        _transfer(from, to, id);
         emit Transfer(from, to, id);
     }
 
-    // Safe batch transfer function
-    function safeBatchTransferFrom(address from, address to, uint256[] memory ids) external onlyOwner {
+    // Safe batch transfer function to transfer multiple NFTs and amounts
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts
+    ) external onlyOwnerOrModerator {
         require(from != address(0), "Transfer from the zero address");
         require(to != address(0), "Transfer to the zero address");
+        require(!_hasNFT[to][ids[0]], "Recipient already has an NFT");
 
         for (uint256 i = 0; i < ids.length; i++) {
             uint256 id = ids[i];
-            require(!_hasNFT[to][id], "Recipient already has an NFT");
+            uint256 amount = amounts[i];
 
             uint256 fromBalance = _balances[id][from];
-            require(fromBalance >= 1, "Transfer amount exceeds balance");
+            require(fromBalance >= amount, "Transfer amount exceeds balance");
 
-            _balances[id][from] = fromBalance - 1;
-            _balances[id][to] = 1;
+            _balances[id][from] = fromBalance - amount;
+            _balances[id][to] = amount;
             _hasNFT[to][id] = true;
-            emit Transfer(from, to, id);
+            emit TransferBatch(from, to, ids, amounts);
         }
     }
 
     // Mint function
-    function mint(address account, uint256 id, uint256 amount) external onlyOwner {
+    function mint(
+        address account,
+        uint256 id,
+        uint256 amount
+    ) external onlyOwner {
         require(account != address(0), "Mint to the zero address");
 
         if (id == 0) {
@@ -119,14 +167,24 @@ contract DesiverseDAO {
     }
 
     // Update total supply function of NFTs id onlyOwner
-    function updateTotalSupply(uint256 id, uint256 newTotalSupply) external onlyOwner {
-        require(newTotalSupply > _balances[id][msg.sender], "New total supply must be greater than current balance");
+    function updateTotalSupply(
+        uint256 id,
+        uint256 newTotalSupply
+    ) external onlyOwner {
+        require(
+            newTotalSupply > _balances[id][msg.sender],
+            "New total supply must be greater than current balance"
+        );
 
         _mint(msg.sender, id, newTotalSupply - _balances[id][msg.sender]);
     }
 
     // Burn function
-    function burn(address account, uint256 id, uint256 amount) external onlyOwner {
+    function burn(
+        address account,
+        uint256 id,
+        uint256 amount
+    ) external onlyOwner {
         require(account != address(0), "Burn from the zero address");
 
         uint256 accountBalance = _balances[id][account];
@@ -144,15 +202,42 @@ contract DesiverseDAO {
     }
 
     // Owner functions
+    function moderator1() external view returns (address) {
+        return _moderator1;
+    }
+
+    function moderator2() external view returns (address) {
+        return _moderator2;
+    }
+
     function owner() external view returns (address) {
         return _owner;
     }
 
+    function setModerator1(address newModerator1) external onlyOwner {
+        require(
+            newModerator1 != address(0),
+            "Set moderator1 to the zero address"
+        );
+        _moderator1 = newModerator1;
+    }
+
+    function setModerator2(address newModerator2) external onlyOwner {
+        require(
+            newModerator2 != address(0),
+            "Set moderator2 to the zero address"
+        );
+        _moderator2 = newModerator2;
+    }
+
     // Transfer ownership function
     function transferOwnership(address newOwner) external onlyOwner {
-        require(newOwner != address(0), "Transfer ownership to the zero address");
+        require(
+            newOwner != address(0),
+            "Transfer ownership to the zero address"
+        );
         _owner = newOwner;
-        
+
         uint256 fromBalance = _balances[0][msg.sender];
         _balances[0][msg.sender] = 0;
         _balances[0][newOwner] = fromBalance;
@@ -193,7 +278,13 @@ contract DesiverseDAO {
         require(token != address(0), "Withdraw token to the zero address");
         require(amount > 0, "Withdraw amount must be greater than zero");
 
-        (bool success, ) = token.call(abi.encodeWithSignature("transfer(address,uint256)", msg.sender, amount));
+        (bool success, ) = token.call(
+            abi.encodeWithSignature(
+                "transfer(address,uint256)",
+                msg.sender,
+                amount
+            )
+        );
         require(success, "Transfer failed");
     }
 
