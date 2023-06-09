@@ -75,7 +75,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     }
 
     function batchMint(address[] memory accounts) public onlyOwner {
-        require(accounts.length < _maxSupply, "Max allowed supply is 2222");
+        require(accounts.length < _maxSupply, "Max allowed supply is 1111");
         require(accounts.length > 0, "Empty batch");
         for (uint256 i = 0; i < accounts.length; i++) {
             mint(accounts[i]);
