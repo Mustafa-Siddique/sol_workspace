@@ -26,11 +26,7 @@ struct SubscriptionPayment {
 // Struct to store the details of a vehicle
 struct Vehicle {
     string VIN;
-    string brand;
-    string model;
     string color;
-    string engineNumber;
-    string chassisNumber;
     string ownerName;
 }
 
@@ -42,8 +38,6 @@ struct Shop {
     string contactNumber;
     string email;
     string website;
-    string logo;
-    string[] services;
     uint256[] subscriptionReceipts;
     address payable shopWallet;
     string officialID;
@@ -62,7 +56,6 @@ struct Owner {
     string name;
     string contactNumber;
     string email;
-    string officialID;
     string[] vehicleVINs;
     address payable ownerWallet;
 }
@@ -89,26 +82,50 @@ contract vehicleModificationTracker {
     IERC20 public secondaryToken;
 
     // Manage the payment options
-    uint8 public paymentOption = 1; // 0 - ERC20, 1 - ETH (default)
+    uint8 private paymentOption = 1; // 0 - ERC20, 1 - ETH (default)
 
     // Fee for the subscription
     uint256 public ethFee = 0.01 ether;
     uint256 public tokenFee = 100 * 10 ** 18;
 
+    // Counters
+    uint256 public totalAutoShops = 0;
+    uint256 public totalCarDealers = 0;
+    uint256 public totalCarOwners = 0;
+    uint256 public totalVehicles = 0;
+
     // Analytics
-    uint256 public totalPaymentEth;
-    uint256 public totalPaymentToken;
-    mapping(address => uint256) public totalPaymentEthByUser;
-    mapping(address => uint256) public totalPaymentTokenByUser;
+    uint256 private totalPaymentEth;
+    uint256 private totalPaymentToken;
+    mapping(address => uint256) private totalPaymentEthByUser;
+    mapping(address => uint256) private totalPaymentTokenByUser;
 
     // mapping user address to subscription payment details
-    mapping(address => SubscriptionPayment) public subscriptionPayments;
+    mapping(address => SubscriptionPayment) private subscriptionPayments;
 
     // mapping user address to user type
-    mapping(address => UserType) public userTypes;
+    mapping(address => UserType) private userTypes;
 
     // mapping user address to auto shop details
-    mapping(address => Shop) public shops;
+    mapping(address => Shop) private shops;
+
+    // mapping user address to car owner details
+    mapping(address => Owner) private owners;
+
+    // mapping vehicle VIN to vehicle details
+    mapping(string => Vehicle) private vehicles;
+
+    // mapping vehicle VIN to vehicle modification details
+    mapping(string => Modification[]) private modifications;
+
+    // mapping user address to dashboard details
+    mapping(address => Dashboard) private dashboards;
+
+    // Events
+    event SubscriptionPaymentEvent(address indexed _user, uint256 _paymentTime);
+    event ShopRegistered(string name, string location);
+    event CarDealerRegistered(string name, string location);
+    event CarOwnerRegistered(string name, string location);
 
     // modifier to check if the user is a super admin
     modifier onlySuperAdmin() {
@@ -169,10 +186,27 @@ contract vehicleModificationTracker {
 
     // modifier to check if auto shop or car dealer has active subscription
     modifier onlyActiveSubscription() {
+        // if the user is a super admin or owner, then no need to check for subscription
+        if (
+            userTypes[msg.sender] == UserType.SuperAdmin ||
+            userTypes[msg.sender] == UserType.CarOwner
+        ) {
+            _;
+        } else {
+            require(
+                subscriptionPayments[msg.sender].subscriptionExpiry >
+                    block.timestamp,
+                "Your subscription has expired"
+            );
+            _;
+        }
+    }
+
+    // modifier to check if the user is registered
+    modifier onlyRegisteredUser() {
         require(
-            subscriptionPayments[msg.sender].subscriptionExpiry >=
-                block.timestamp,
-            "Your subscription has expired. Please renew your subscription to continue using the service"
+            userTypes[msg.sender] != UserType.Unregistered,
+            "You are not registered"
         );
         _;
     }
@@ -193,6 +227,8 @@ contract vehicleModificationTracker {
         userTypes[msg.sender] = UserType.SuperAdmin;
         secondaryToken = IERC20(_tokenAddress);
     }
+
+    // ------------------------- Payable Functions -------------------------
 
     // Function to pay for the subscription
     function payForSubscription() external payable onlyRegistered {
@@ -224,15 +260,344 @@ contract vehicleModificationTracker {
                 totalPaymentEthByUser[msg.sender] +
                 ethFee;
         }
+        // timestamp calculation for 365 days
+        uint256 annum = 31536000;
         subscriptionPayments[msg.sender] = SubscriptionPayment(
             msg.sender,
             block.timestamp,
             msg.value,
-            block.timestamp + 365 days
+            block.timestamp + annum
         );
     }
 
     // Function to pay for the subscription in advance
+    function payForSubscriptionInAdvance() external payable onlyRegistered {
+        require(
+            subscriptionPayments[msg.sender].subscriptionExpiry != 0,
+            "You do not have an active subscription"
+        );
+        if (paymentOption == 0) {
+            require(
+                msg.value == 0,
+                "You have selected ERC20 as payment option. Please pay using ERC20 tokens"
+            );
+            secondaryToken.safeTransferFrom(
+                msg.sender,
+                address(this),
+                tokenFee
+            );
+            totalPaymentToken = totalPaymentToken + tokenFee;
+            totalPaymentTokenByUser[msg.sender] =
+                totalPaymentTokenByUser[msg.sender] +
+                tokenFee;
+        } else {
+            require(
+                msg.value == ethFee,
+                "You have selected ETH as payment option. Please pay using ETH"
+            );
+            totalPaymentEth = totalPaymentEth + ethFee;
+            totalPaymentEthByUser[msg.sender] =
+                totalPaymentEthByUser[msg.sender] +
+                ethFee;
+        }
+        // timestamp calculation for 365 days
+        uint256 annum = 31536000;
+        subscriptionPayments[msg.sender].paymentTime = block.timestamp;
+        subscriptionPayments[msg.sender].paymentAmount = msg.value;
+        subscriptionPayments[msg.sender].subscriptionExpiry =
+            subscriptionPayments[msg.sender].subscriptionExpiry +
+            annum;
+    }
+
+    // ------------------------- Setters Functions -------------------------
+
+    // Function to set the payment option
+    function setEthFee(uint256 _ethFee) external onlySuperAdmin {
+        require(_ethFee > 0, "ETH fee cannot be zero");
+        ethFee = _ethFee;
+    }
+
+    // Function to set token fee
+    function setTokenFee(uint256 _tokenFee) external onlySuperAdmin {
+        require(_tokenFee > 0, "Token fee cannot be zero");
+        tokenFee = _tokenFee;
+    }
+
+    // Function to set the payment option
+    function setPaymentOption(uint8 _paymentOption) external onlySuperAdmin {
+        require(
+            _paymentOption == 0 || _paymentOption == 1,
+            "Invalid payment option"
+        );
+        paymentOption = _paymentOption;
+    }
+
+    // Function to update the token address
+    function updateTokenAddress(address _tokenAddress) external onlySuperAdmin {
+        secondaryToken = IERC20(_tokenAddress);
+    }
+
+    // Function to register a new auto shop
+    function registerAutoShop(
+        string memory _ownerNames,
+        string memory _name,
+        string memory _location,
+        string memory _contactNumber,
+        string memory _email,
+        string memory _website,
+        address payable _shopWallet,
+        string memory _officialID
+    ) external onlySuperAdmin returns (bool) {
+        require(
+            userTypes[_shopWallet] == UserType.Unregistered,
+            "Wallet already registered"
+        );
+        userTypes[_shopWallet] = UserType.AutoShop;
+        shops[_shopWallet] = Shop(
+            _ownerNames,
+            _name,
+            _location,
+            _contactNumber,
+            _email,
+            _website,
+            new uint256[](0),
+            _shopWallet,
+            _officialID
+        );
+        emit ShopRegistered(_name, _location);
+        totalAutoShops += 1;
+        return true;
+    }
+
+    // Function to register a new car dealer
+    function registerCarDealer(
+        string memory _ownerNames,
+        string memory _name,
+        string memory _location,
+        string memory _contactNumber,
+        string memory _email,
+        string memory _website,
+        address payable _shopWallet,
+        string memory _officialID
+    ) external onlySuperAdmin returns (bool) {
+        require(
+            userTypes[_shopWallet] == UserType.Unregistered,
+            "Wallet already registered"
+        );
+        userTypes[_shopWallet] = UserType.CarDealer;
+        shops[_shopWallet] = Shop(
+            _ownerNames,
+            _name,
+            _location,
+            _contactNumber,
+            _email,
+            _website,
+            new uint256[](0),
+            _shopWallet,
+            _officialID
+        );
+        emit CarDealerRegistered(_name, _location);
+        totalCarDealers += 1;
+        return true;
+    }
+
+    // Function to register a new car owner
+    function registerCarOwner(
+        string memory _name,
+        string memory _contactNumber,
+        string memory _email
+    ) external returns (bool) {
+        require(
+            userTypes[msg.sender] == UserType.Unregistered,
+            "Wallet already registered"
+        );
+        require(bytes(_name).length > 0, "Name cannot be empty");
+        userTypes[msg.sender] = UserType.CarOwner;
+        owners[msg.sender] = Owner(
+            _name,
+            _contactNumber,
+            _email,
+            new string[](0),
+            payable(msg.sender)
+        );
+        emit CarOwnerRegistered(_name, _email);
+        totalCarOwners += 1;
+        return true;
+    }
+
+    // Function to add a new vehicle
+    function addVehicle(
+        string memory _VIN,
+        string memory _color,
+        string memory _ownerName,
+        address _ownerWallet
+    ) external onlySuperAdminOrCarOwner returns (bool) {
+        require(
+            keccak256(bytes(vehicles[_VIN].VIN)) != keccak256(bytes(_VIN)),
+            "Vehicle already registered"
+        );
+        vehicles[_VIN] = Vehicle(_VIN, _color, _ownerName);
+        owners[_ownerWallet].vehicleVINs.push(_VIN);
+        totalVehicles += 1;
+        return true;
+    }
+
+    // Function to add a new vehicle modification
+    function addModification(
+        string memory _VIN,
+        string memory _modificationType,
+        string memory _modificationDescription,
+        uint256 _modificationCost,
+        uint256 _modificationLocation,
+        address _serviceProvider
+    )
+        external
+        onlySuperAdminOrAutoShopOrCarDealer
+        onlyActiveSubscription
+        returns (bool)
+    {
+        checkAndRegisterVehicle(_VIN);
+        modifications[_VIN].push(
+            Modification(
+                _VIN,
+                _modificationType,
+                _modificationDescription,
+                block.timestamp,
+                _modificationCost,
+                _modificationLocation,
+                _serviceProvider
+            )
+        );
+        // update the dashboard of auto shop / car dealer
+        if (
+            userTypes[msg.sender] == UserType.AutoShop ||
+            userTypes[msg.sender] == UserType.CarDealer
+        ) {
+            bool isVehiclePresent = false;
+            for (
+                uint256 i = 0;
+                i < dashboards[msg.sender].vehicleVINs.length;
+                i++
+            ) {
+                if (
+                    keccak256(bytes(dashboards[msg.sender].vehicleVINs[i])) ==
+                    keccak256(bytes(_VIN))
+                ) {
+                    dashboards[msg.sender].totalRevenue += _modificationCost;
+                    dashboards[msg.sender].completedServices += 1;
+                    return true;
+                }
+            }
+            if (!isVehiclePresent) {
+                dashboards[msg.sender].totalCustomers += 1;
+                dashboards[msg.sender].totalRevenue += _modificationCost;
+                dashboards[msg.sender].completedServices += 1;
+                dashboards[msg.sender].vehicleVINs.push(_VIN);
+            }
+        }
+        return true;
+    }
+
+    // Function to check and register a vehicle internally
+    function checkAndRegisterVehicle(string memory _VIN) internal {
+        if (keccak256(bytes(vehicles[_VIN].VIN)) != keccak256(bytes(_VIN))) {
+            vehicles[_VIN] = Vehicle(_VIN, "", "");
+            totalVehicles += 1;
+        }
+    }
+
+    // ------------------------- Getters Functions -------------------------
+
+    // Function to get last payment details of a user
+    function getLastPaymentDetails(
+        address _user
+    ) external view returns (SubscriptionPayment memory) {
+        return subscriptionPayments[_user];
+    }
+
+    // Function to get the payment option
+    function getPaymentOption() external view returns (uint8) {
+        return paymentOption;
+    }
+
+    // Function to check user type
+    function getUserType(address _user) external view returns (UserType) {
+        return userTypes[_user];
+    }
+
+    // Function to get the dashboard details of an auto shop / car dealer onlySuperAdmin or shop itself
+    function getDashboard(
+        address _shop
+    )
+        external
+        view
+        onlySuperAdminOrAutoShopOrCarDealer
+        returns (Dashboard memory)
+    {
+        if (
+            _shop == msg.sender || userTypes[msg.sender] == UserType.SuperAdmin
+        ) {
+            return dashboards[_shop];
+        } else {
+            revert("You are not authorized to view this dashboard");
+        }
+    }
+
+    // ------------------------- Owner Specific Functions -------------------------
+
+    // Function to withdraw the ETH balance
+    function withdrawEthBalance() external onlySuperAdmin {
+        payable(owner).transfer(address(this).balance);
+    }
+
+    // Function to withdraw the token balance
+    function withdrawTokenBalance(
+        address _tokenAddress
+    ) external onlySuperAdmin {
+        IERC20 token = IERC20(_tokenAddress);
+        token.safeTransfer(owner, token.balanceOf(address(this)));
+    }
+
+    // Function to transfer the ownership of the contract
+    function transferOwnership(address _newOwner) external onlySuperAdmin {
+        userTypes[owner] = UserType.Unregistered;
+        userTypes[_newOwner] = UserType.SuperAdmin;
+        owner = _newOwner;
+    }
+
+    // Function to get total ETH payment
+    function getTotalEthPayment()
+        external
+        view
+        onlySuperAdmin
+        returns (uint256)
+    {
+        return totalPaymentEth;
+    }
+
+    // Function to get total ETH payment by user
+    function getTotalEthPaymentByUser(
+        address _user
+    ) external view onlySuperAdmin returns (uint256) {
+        return totalPaymentEthByUser[_user];
+    }
+
+    // Function to get total token payment
+    function getTotalTokenPayment()
+        external
+        view
+        onlySuperAdmin
+        returns (uint256)
+    {
+        return totalPaymentToken;
+    }
+
+    // Function to get total token payment by user
+    function getTotalTokenPaymentByUser(
+        address _user
+    ) external view onlySuperAdmin returns (uint256) {
+        return totalPaymentTokenByUser[_user];
+    }
 
     // Allow smart contract to receive ETH
     receive() external payable {}
