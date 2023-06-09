@@ -121,11 +121,16 @@ contract vehicleModificationTracker {
     // mapping user address to dashboard details
     mapping(address => Dashboard) private dashboards;
 
+    // mapping to store the blacklisted users
+    mapping(address => bool) private blacklistedUsers;
+
     // Events
     event SubscriptionPaymentEvent(address indexed _user, uint256 _paymentTime);
     event ShopRegistered(string name, string location);
     event CarDealerRegistered(string name, string location);
     event CarOwnerRegistered(string name, string location);
+    event ShopDeleted(string name, string location);
+    event UserBlacklisted(address indexed _user);
 
     // modifier to check if the user is a super admin
     modifier onlySuperAdmin() {
@@ -405,20 +410,20 @@ contract vehicleModificationTracker {
     function registerCarOwner(
         string memory _name,
         string memory _contactNumber,
-        string memory _email
-    ) external returns (bool) {
+        string memory _email,
+        address payable _ownerWallet
+    ) external onlySuperAdmin returns (bool) {
         require(
             userTypes[msg.sender] == UserType.Unregistered,
             "Wallet already registered"
         );
-        require(bytes(_name).length > 0, "Name cannot be empty");
-        userTypes[msg.sender] = UserType.CarOwner;
-        owners[msg.sender] = Owner(
+        userTypes[_ownerWallet] = UserType.CarOwner;
+        owners[_ownerWallet] = Owner(
             _name,
             _contactNumber,
             _email,
             new string[](0),
-            payable(msg.sender)
+            payable(_ownerWallet)
         );
         emit CarOwnerRegistered(_name, _email);
         totalCarOwners += 1;
@@ -543,6 +548,11 @@ contract vehicleModificationTracker {
         }
     }
 
+    // Function to check if a user is blacklisted
+    function isBlacklisted(address _user) external view returns (bool) {
+        return blacklistedUsers[_user];
+    }
+
     // ------------------------- Owner Specific Functions -------------------------
 
     // Function to withdraw the ETH balance
@@ -556,6 +566,56 @@ contract vehicleModificationTracker {
     ) external onlySuperAdmin {
         IERC20 token = IERC20(_tokenAddress);
         token.safeTransfer(owner, token.balanceOf(address(this)));
+    }
+
+    // Function to blacklist a user
+    function blacklistUser(address _user) external onlySuperAdmin {
+        blacklistedUsers[_user] = true;
+        emit UserBlacklisted(_user);
+    }
+
+    // Function to unblacklist a user
+    function unBlacklistUser(address _user) external onlySuperAdmin {
+        blacklistedUsers[_user] = false;
+    }
+
+    // Function to delete a vehicle from owner's struct
+    function deleteVehicleFromOwner(
+        address _owner,
+        string memory _VIN
+    ) external onlySuperAdmin {
+        for (uint256 i = 0; i < owners[_owner].vehicleVINs.length; i++) {
+            if (
+                keccak256(bytes(owners[_owner].vehicleVINs[i])) ==
+                keccak256(bytes(_VIN))
+            ) {
+                for (
+                    uint256 j = i;
+                    j < owners[_owner].vehicleVINs.length - 1;
+                    j++
+                ) {
+                    owners[_owner].vehicleVINs[j] = owners[_owner].vehicleVINs[
+                        j + 1
+                    ];
+                }
+                break;
+            }
+        }
+    }
+
+    // Function to delete a vehicle from vehicle's struct
+    function deleteVehicleFromVehicle(
+        string memory _VIN
+    ) external onlySuperAdmin {
+        delete vehicles[_VIN];
+    }
+
+    // Function to delete a shop and usertype
+    function deleteShop(address _shop) external onlySuperAdmin {
+        delete userTypes[_shop];
+        emit ShopDeleted(shops[_shop].name, shops[_shop].location);
+        delete shops[_shop];
+        totalAutoShops -= 1;
     }
 
     // Function to transfer the ownership of the contract
