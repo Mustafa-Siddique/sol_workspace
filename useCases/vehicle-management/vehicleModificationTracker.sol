@@ -437,10 +437,7 @@ contract vehicleModificationTracker {
         string memory _ownerName,
         address _ownerWallet
     ) external onlySuperAdminOrCarOwner returns (bool) {
-        require(
-            keccak256(bytes(vehicles[_VIN].VIN)) != keccak256(bytes(_VIN)),
-            "Vehicle already registered"
-        );
+        checkAndRegisterVehicle(_VIN);
         vehicles[_VIN] = Vehicle(_VIN, _color, _ownerName);
         owners[_ownerWallet].vehicleVINs.push(_VIN);
         totalVehicles += 1;
@@ -551,6 +548,31 @@ contract vehicleModificationTracker {
     // Function to check if a user is blacklisted
     function isBlacklisted(address _user) external view returns (bool) {
         return blacklistedUsers[_user];
+    }
+
+    // Function to get the details and all vehicle history
+    function getVehicleDetails(
+        string memory _VIN
+    ) external view returns (Vehicle memory, Modification[] memory) {
+        return (vehicles[_VIN], modifications[_VIN]);
+    }
+
+    // Function to get details of a shop
+    function getShopDetails(address _shop)
+        external
+        view
+        returns (Shop memory)
+    {
+        return shops[_shop];
+    }
+
+    // Function to get details of a car owner
+    function getOwnerDetails(address _owner)
+        external
+        view
+        returns (Owner memory)
+    {
+        return owners[_owner];
     }
 
     // ------------------------- Owner Specific Functions -------------------------
