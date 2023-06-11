@@ -67,7 +67,7 @@ struct Modification {
     string modificationDescription;
     uint256 modificationTime;
     uint256 modificationCost;
-    uint256 modificationLocation;
+    string modificationLocation;
     address serviceProvider;
 }
 
@@ -414,7 +414,7 @@ contract vehicleModificationTracker {
         address payable _ownerWallet
     ) external onlySuperAdmin returns (bool) {
         require(
-            userTypes[msg.sender] == UserType.Unregistered,
+            userTypes[_ownerWallet] == UserType.Unregistered,
             "Wallet already registered"
         );
         userTypes[_ownerWallet] = UserType.CarOwner;
@@ -450,7 +450,7 @@ contract vehicleModificationTracker {
         string memory _modificationType,
         string memory _modificationDescription,
         uint256 _modificationCost,
-        uint256 _modificationLocation,
+        string memory _modificationLocation,
         address _serviceProvider
     )
         external
