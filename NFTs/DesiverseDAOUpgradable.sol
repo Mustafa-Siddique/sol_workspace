@@ -6,6 +6,12 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/
 import "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/proxy/utils/Initializable.sol";
 import "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/utils/structs/EnumerableSetUpgradeable.sol";
 
+struct VoucherBlock {
+    string Voucher;
+    uint256 Vouchertype;
+    bool Status;
+}
+
 contract DesiverseDao is Initializable, ERC1155Upgradeable {
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.AddressSet;
     EnumerableSetUpgradeable.AddressSet private _approvedMinters;
@@ -25,9 +31,11 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     uint256 private price;
     uint256 private codeCounter;
 
+    // Events
     event TokenLocked(uint256 tokenId, uint256 unlockTime);
     event TokenUnlocked(uint256 tokenId);
 
+    // Function to initialize the contract
     function initialize() public initializer {
         __ERC1155_init(
             string(
@@ -42,6 +50,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _maxSupply = 1111;
     }
 
+    // Modifiers
     modifier onlyOwner() {
         require(
             msg.sender == _owner,
@@ -49,6 +58,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         );
         _;
     }
+
     modifier approval(address account) {
         if (!isApprovedForAll(_owner, account)) {
             _setApprovalForAll(_owner, account, true);
@@ -64,24 +74,34 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _;
     }
 
+    // ------------------ Write Functions ------------------
+
+    // Function to set the base URI
     function setNewURI(string memory newuri) public onlyOwner {
         _setURI(newuri);
     }
 
+    // Function to mint NFT
     function mint(address account) public onlyOwner {
         require(!_lockedTokens[_tokenId], "Token is locked");
         _mint(account, _tokenId, 1, "");
         _tokenId++;
     }
 
-    function batchMint(address[] memory accounts) public onlyOwner {
-        require(accounts.length < _maxSupply, "Max allowed supply is 1111");
-        require(accounts.length > 0, "Empty batch");
-        for (uint256 i = 0; i < accounts.length; i++) {
-            mint(accounts[i]);
-        }
+    // Function to mint NFT batch
+    function mintBatch(address account, uint256 amount) public onlyOwner {
+        require(!_lockedTokens[_tokenId], "Token is locked");
+        _mint(account, _tokenId, amount, "");
+        _tokenId++;
     }
 
+    // Function to mint all supply at once to owner
+    function mintAll() public onlyOwner {
+        _mint(_owner, _tokenId, _maxSupply, "");
+        _tokenId++;
+    }
+
+    // Function to add voucher codes
     function addVouchers(
         string[] memory codes,
         uint256[] memory voucherType
@@ -95,39 +115,17 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         }
     }
 
-    struct VoucherBlock {
-        string Voucher;
-        uint256 Vouchertype;
-        bool Status;
-    }
-
-    function getVouchers()
-        public
-        view
-        onlyOwner
-        returns (VoucherBlock[] memory)
-    {
-        uint256 numCodes = codeCounter;
-        VoucherBlock[] memory CodeRecord = new VoucherBlock[](numCodes);
-
-        for (uint256 i = 1; i <= numCodes; i++) {
-            string memory vcode = _allCodes[i];
-            uint256 vtype = _voucherCodes[vcode];
-            bool vstate = _voucherStatus[vcode];
-            VoucherBlock memory coderecord = VoucherBlock(vcode, vtype, vstate);
-            CodeRecord[i - 1] = coderecord;
-        }
-        return CodeRecord;
-    }
-
+    // Function to set locked days
     function setLockedDays(uint256 daysLocked) public onlyOwner {
         _lockedDays = daysLocked;
     }
 
+    // Function to set max supply
     function setMaxSupply(uint256 maxSupply) public onlyOwner {
         _maxSupply = maxSupply;
     }
 
+    // Function to buy NFT
     function buy(
         address account,
         uint256 id,
@@ -185,6 +183,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         emit TokenLocked(id, unlockingTime);
     }
 
+    // Function to buy only
     function buyOnly(
         address account,
         uint256 id
@@ -213,20 +212,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         emit TokenLocked(id, unlockingTime);
     }
 
-    function balanceOf(
-        address account,
-        uint256 id
-    ) public view virtual override returns (uint256) {
-        return super.balanceOf(account, id);
-    }
-
-    function balanceOfBatch(
-        address[] memory accounts,
-        uint256[] memory ids
-    ) public view virtual override returns (uint256[] memory) {
-        return super.balanceOfBatch(accounts, ids);
-    }
-
+    // Function to unlock token
     function unlockToken(uint256 tokenId) public onlyOwner {
         require(_lockedTokens[tokenId], "Token is not locked");
         require(
@@ -237,17 +223,56 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         emit TokenUnlocked(tokenId);
     }
 
+    // Function to get voucher codes
+    function getVouchers()
+        public
+        view
+        onlyOwner
+        returns (VoucherBlock[] memory)
+    {
+        uint256 numCodes = codeCounter;
+        VoucherBlock[] memory CodeRecord = new VoucherBlock[](numCodes);
+
+        for (uint256 i = 1; i <= numCodes; i++) {
+            string memory vcode = _allCodes[i];
+            uint256 vtype = _voucherCodes[vcode];
+            bool vstate = _voucherStatus[vcode];
+            VoucherBlock memory coderecord = VoucherBlock(vcode, vtype, vstate);
+            CodeRecord[i - 1] = coderecord;
+        }
+        return CodeRecord;
+    }
+
+    // Function to check balance
+    function balanceOf(
+        address account,
+        uint256 id
+    ) public view virtual override returns (uint256) {
+        return super.balanceOf(account, id);
+    }
+
+    // Function to check balance batch
+    function balanceOfBatch(
+        address[] memory accounts,
+        uint256[] memory ids
+    ) public view virtual override returns (uint256[] memory) {
+        return super.balanceOfBatch(accounts, ids);
+    }
+
+    // Function to get unlock time
     function unlockTime(uint256 tokenId) public view returns (uint256) {
         require(_lockedTokens[tokenId], "Token is not locked");
         return block.timestamp + (_lockedDays * 1 days);
     }
 
+    // Function to get token lock status
     function isTokenUnlocked(uint256 tokenId) public view returns (bool) {
         return
             !_lockedTokens[tokenId] ||
             _unlockTimes[msg.sender][tokenId] <= block.timestamp;
     }
 
+    // Function to get max supply
     function getMaxSupply() public view returns (uint256) {
         return _maxSupply;
     }
