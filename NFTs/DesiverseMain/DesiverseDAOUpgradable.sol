@@ -2,14 +2,15 @@
 
 pragma solidity ^0.8.0;
 
-import "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/token/ERC1155/ERC1155Upgradeable.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/proxy/utils/Initializable.sol";
-import "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/utils/structs/EnumerableSetUpgradeable.sol";
+import "./ERC1155Upgradable.sol";
+import "./Initializable.sol";
+import "./EnumerableSetUpgradeable.sol";
 
-struct VoucherBlock {
+struct Voucher {
     string Voucher;
     uint256 Vouchertype;
     bool Status;
+    uint256 Count;
 }
 
 contract DesiverseDao is Initializable, ERC1155Upgradeable {
@@ -19,9 +20,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     mapping(address => mapping(uint256 => uint256)) private _unlockTimes;
     mapping(uint256 => bool) private _lockedTokens;
     mapping(uint256 => address) private _founder;
-    mapping(uint256 => uint256) private _voucherCount;
-    mapping(string => bool) private _voucherStatus;
-    mapping(string => uint256) private _voucherCodes;
+    mapping(string => Voucher) private _vouchers;
     mapping(uint256 => string) private _allCodes;
     address private _owner;
     uint256 private _maxSupply;
@@ -83,14 +82,12 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
 
     // Function to mint NFT
     function mint(address account) public onlyOwner {
-        require(!_lockedTokens[_tokenId], "Token is locked");
         _mint(account, _tokenId, 1, "");
         _tokenId++;
     }
 
     // Function to mint NFT batch
     function mintBatch(address account, uint256 amount) public onlyOwner {
-        require(!_lockedTokens[_tokenId], "Token is locked");
         _mint(account, _tokenId, amount, "");
         _tokenId++;
     }
@@ -101,18 +98,28 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _tokenId++;
     }
 
-    // Function to add voucher codes
-    function addVouchers(
-        string[] memory codes,
-        uint256[] memory voucherType
+    // Function to add voucher code and type with count
+    function addVoucher(
+        string memory voucherCode,
+        uint256 voucherType,
+        uint256 count
     ) public onlyOwner {
-        require(codes.length < 250, "Max voucher supply is 250");
-        require(codes.length == voucherType.length, "Arrays length mismatch");
-        for (uint256 i = 0; i < codes.length; i++) {
-            _voucherCodes[codes[i]] = voucherType[i];
-            codeCounter++;
-            _allCodes[codeCounter] = codes[i];
-        }
+        require(bytes(voucherCode).length > 0, "Voucher code is required");
+        require(voucherType > 0, "Voucher type is required");
+        require(voucherType > 0 && voucherType < 4, "Invalid voucher type");
+        require(
+            _vouchers[voucherCode].Vouchertype == 0,
+            "Voucher code already exist"
+        );
+        Voucher memory voucher = Voucher(
+            voucherCode,
+            voucherType,
+            false,
+            count
+        );
+        _vouchers[voucherCode] = voucher;
+        codeCounter++;
+        _allCodes[codeCounter] = voucherCode;
     }
 
     // Function to set locked days
@@ -125,7 +132,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _maxSupply = maxSupply;
     }
 
-    // Function to buy NFT
+    // Function to buy NFT with voucher code where voucher type 1 is 15% discount, 2 is 50% discount and 3 is 100% discount
     function buy(
         address account,
         uint256 id,
@@ -133,47 +140,34 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     ) public payable approval(account) {
         require(founderCount <= _maxSupply, "No more token for buy");
         require(id <= _maxSupply, "Token id is not valid");
-
-        require(!_lockedTokens[id], "Token is locked");
-        require(!_voucherStatus[voucherCode], "Voucher Already Used");
-        require(_voucherCodes[voucherCode] <= 3, "Wrong woucher");
         require(
             !_tokenOwners[msg.sender],
-            "You are not allowed to buy more token, Only one time buy allowed"
+            "You can't have more than one token"
         );
-        uint256 discount = 0;
-        if (bytes(voucherCode).length > 0) {
-            uint256 voucherType = _voucherCodes[voucherCode];
-            require(voucherType > 0, "Invalid voucher code");
-            require(
-                _voucherCount[1] <= 50,
-                "No more voucher available for this type"
-            );
-            require(
-                _voucherCount[2] <= 100,
-                "No more voucher available for this type"
-            );
-
-            require(
-                _voucherCount[3] <= 100,
-                "No more voucher available for this type"
-            );
-            if (voucherType == 1) {
-                discount = price;
-            } else if (voucherType == 2) {
-                discount = (price * 15) / 100;
-            } else if (voucherType == 3) {
-                discount = (price * 50) / 100;
-            }
+        require(
+            _vouchers[voucherCode].Vouchertype > 0 &&
+                _vouchers[voucherCode].Vouchertype < 4,
+            "Invalid voucher code"
+        );
+        require(_vouchers[voucherCode].Count > 0, "Cannot redeem voucher");
+        uint256 _price;
+        if (_vouchers[voucherCode].Vouchertype == 1) {
+            _price = (price * 85) / 100;
+            require(msg.value == _price, "Eth Invalid");
+        } else if (_vouchers[voucherCode].Vouchertype == 2) {
+            _price = (price * 50) / 100;
+            require(msg.value == _price, "Eth Invalid");
+        } else if (_vouchers[voucherCode].Vouchertype == 3) {
+            _price = 0;
+            require(msg.value == _price, "Eth Invalid");
         }
-        require(msg.value >= price - discount, "Insufficient funds");
         safeTransferFrom(_owner, account, id, 1, "");
         founderCount++;
         _founder[founderCount] = account;
         _lockedTokens[id] = true;
-        _voucherCount[_voucherCodes[voucherCode]]++;
-        _voucherStatus[voucherCode] = true;
         _tokenOwners[msg.sender] = true;
+        _vouchers[voucherCode].Count--;
+
         // Set the unlock time for this token and user
         uint256 unlockingTime = block.timestamp +
             (_lockedDays * 1 days) +
@@ -190,7 +184,6 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     ) public payable approval(account) {
         require(founderCount <= _maxSupply, "No more token for buy");
         require(id <= _maxSupply, "Token id is not valid");
-        require(!_lockedTokens[id], "Token is locked");
         require(
             !_tokenOwners[msg.sender],
             "You are not allowed to buy more token, Only one time buy allowed"
@@ -212,6 +205,18 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         emit TokenLocked(id, unlockingTime);
     }
 
+    // Function for safe transfer
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) public virtual override {
+        require(isTokenUnlocked(id), "Token is locked");
+        super.safeTransferFrom(from, to, id, amount, data);
+    }
+
     // Function to unlock token
     function unlockToken(uint256 tokenId) public onlyOwner {
         require(_lockedTokens[tokenId], "Token is not locked");
@@ -224,23 +229,12 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     }
 
     // Function to get voucher codes
-    function getVouchers()
-        public
-        view
-        onlyOwner
-        returns (VoucherBlock[] memory)
-    {
-        uint256 numCodes = codeCounter;
-        VoucherBlock[] memory CodeRecord = new VoucherBlock[](numCodes);
-
-        for (uint256 i = 1; i <= numCodes; i++) {
-            string memory vcode = _allCodes[i];
-            uint256 vtype = _voucherCodes[vcode];
-            bool vstate = _voucherStatus[vcode];
-            VoucherBlock memory coderecord = VoucherBlock(vcode, vtype, vstate);
-            CodeRecord[i - 1] = coderecord;
+    function getVoucherCodes() public view onlyOwner returns (string[] memory) {
+        string[] memory codes = new string[](codeCounter);
+        for (uint256 i = 0; i < codeCounter; i++) {
+            codes[i] = _allCodes[i + 1];
         }
-        return CodeRecord;
+        return codes;
     }
 
     // Function to check balance
@@ -272,8 +266,43 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
             _unlockTimes[msg.sender][tokenId] <= block.timestamp;
     }
 
+    // Function to check voucher code and return price
+    function checkVoucherCode(
+        string memory voucherCode
+    ) public view returns (uint256) {
+        require(
+            _vouchers[voucherCode].Vouchertype > 0 &&
+                _vouchers[voucherCode].Vouchertype < 4,
+            "Invalid voucher code"
+        );
+        require(_vouchers[voucherCode].Count > 0, "Voucher Expired");
+        uint256 _price;
+        if (_vouchers[voucherCode].Vouchertype == 1) {
+            _price = (price * 85) / 100;
+        } else if (_vouchers[voucherCode].Vouchertype == 2) {
+            _price = (price * 50) / 100;
+        } else if (_vouchers[voucherCode].Vouchertype == 3) {
+            _price = 0;
+        }
+        return _price;
+    }
+
     // Function to get max supply
     function getMaxSupply() public view returns (uint256) {
         return _maxSupply;
+    }
+
+    // Transfer ownership
+    function transferOwnership(address newOwner) public onlyOwner {
+        require(
+            newOwner != address(0),
+            "New owner address cannot be zero address"
+        );
+        _owner = newOwner;
+    }
+
+    // Renounce ownership
+    function renounceOwnership() public onlyOwner {
+        _owner = address(0);
     }
 }
