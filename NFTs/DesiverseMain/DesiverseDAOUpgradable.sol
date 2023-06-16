@@ -237,6 +237,11 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         return codes;
     }
 
+    // Function to get NFT price
+    function getPrice() public view returns (uint256) {
+        return price;
+    }
+
     // Function to check balance
     function balanceOf(
         address account,
