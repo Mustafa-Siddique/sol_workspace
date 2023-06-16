@@ -22,7 +22,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     mapping(uint256 => address) private _founder;
     mapping(string => Voucher) private _vouchers;
     mapping(uint256 => string) private _allCodes;
-    address private _owner;
+    address public _owner;
     uint256 private _maxSupply;
     uint256 private _lockedDays;
     uint256 private _tokenId;
@@ -47,6 +47,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _owner = msg.sender;
         price = 0.09 ether;
         _maxSupply = 1111;
+        _lockedDays = 30;
     }
 
     // Modifiers
@@ -168,11 +169,10 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _tokenOwners[msg.sender] = true;
         _vouchers[voucherCode].Count--;
 
-        // Set the unlock time for this token and user
+        // Set the unlock time for this token and user after 30 days
         uint256 unlockingTime = block.timestamp +
             (_lockedDays * 1 days) +
             1 days;
-        _unlockTimes[msg.sender][id] = unlockingTime;
 
         emit TokenLocked(id, unlockingTime);
     }
@@ -196,11 +196,10 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _lockedTokens[id] = true;
         _tokenOwners[msg.sender] = true;
 
-        // Set the unlock time for this token and user
+        // Set the unlock time for this token and user after 30 days
         uint256 unlockingTime = block.timestamp +
             (_lockedDays * 1 days) +
             1 days;
-        _unlockTimes[msg.sender][id] = unlockingTime;
 
         emit TokenLocked(id, unlockingTime);
     }
