@@ -124,11 +124,6 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _allCodes[codeCounter] = voucherCode;
     }
 
-    // Function to set locked days
-    function setLockedDays(uint256 daysLocked) public onlyOwner {
-        _lockedDays = daysLocked;
-    }
-
     // Function to set max supply
     function setMaxSupply(uint256 maxSupply) public onlyOwner {
         _maxSupply = maxSupply;
@@ -170,10 +165,9 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _vouchers[voucherCode].Count--;
         _tokenId++;
 
-        // Set the unlock time for this token and user after 30 days
-        uint256 unlockingTime = block.timestamp +
-            (_lockedDays * 1 days) +
-            1 days;
+        // Set the unlock time for this token and user after 2629743 seconds (30 days)
+        uint256 unlockingTime = block.timestamp + 2629743;
+        _unlockTimes[msg.sender][_tokenId - 1] = unlockingTime;
 
         emit TokenLocked(_tokenId - 1, unlockingTime);
     }
@@ -194,10 +188,9 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _tokenOwners[msg.sender] = true;
         _tokenId++;
 
-        // Set the unlock time for this token and user after 30 days
-        uint256 unlockingTime = block.timestamp +
-            (_lockedDays * 1 days) +
-            1 days;
+        // Set the unlock time for this token and user after 2629743 seconds (30 days)
+        uint256 unlockingTime = block.timestamp + 2629743;
+        _unlockTimes[msg.sender][_tokenId - 1] = unlockingTime;
 
         emit TokenLocked(_tokenId - 1, unlockingTime);
     }
@@ -243,6 +236,11 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
             codes[i] = _allCodes[i + 1];
         }
         return codes;
+    }
+
+    // Function to get token id associated with user
+    function getTokenId(address account) public view returns (uint256) {
+        return _founder[account];
     }
 
     // Function to get NFT price
