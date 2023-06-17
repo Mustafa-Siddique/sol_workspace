@@ -19,7 +19,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     mapping(address => bool) private _tokenOwners;
     mapping(address => mapping(uint256 => uint256)) private _unlockTimes;
     mapping(uint256 => bool) private _lockedTokens;
-    mapping(uint256 => address) private _founder;
+    mapping(address => uint256) private _founder;
     mapping(string => Voucher) private _vouchers;
     mapping(uint256 => string) private _allCodes;
     address public _owner;
@@ -94,9 +94,10 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     }
 
     // Function to mint all supply at once to owner
-    function mintAll() public onlyOwner {
-        _mint(_owner, _tokenId, _maxSupply, "");
-        _tokenId++;
+    function mintAllSupply(address account) public onlyOwner {
+        for (uint256 i = _tokenId; i <= _maxSupply; i++) {
+            _mint(account, i, 1, "");
+        }
     }
 
     // Function to add voucher code and type with count
@@ -133,14 +134,13 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         _maxSupply = maxSupply;
     }
 
-    // Function to buy NFT with voucher code where voucher type 1 is 15% discount, 2 is 50% discount and 3 is 100% discount
+    // Function to buy NFT with voucher code
     function buy(
         address account,
         uint256 id,
         string memory voucherCode
     ) public payable approval(account) {
         require(founderCount <= _maxSupply, "No more token for buy");
-        require(id <= _maxSupply, "Token id is not valid");
         require(
             !_tokenOwners[msg.sender],
             "You can't have more than one token"
@@ -164,7 +164,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         }
         safeTransferFrom(_owner, account, id, 1, "");
         founderCount++;
-        _founder[founderCount] = account;
+        _founder[account] = founderCount;
         _lockedTokens[id] = true;
         _tokenOwners[msg.sender] = true;
         _vouchers[voucherCode].Count--;
@@ -183,16 +183,15 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         uint256 id
     ) public payable approval(account) {
         require(founderCount <= _maxSupply, "No more token for buy");
-        require(id <= _maxSupply, "Token id is not valid");
         require(
             !_tokenOwners[msg.sender],
             "You are not allowed to buy more token, Only one time buy allowed"
         );
 
-        require(msg.value >= price, "Insufficient funds");
+        require(msg.value == price, "Invalid Eth");
         safeTransferFrom(_owner, account, id, 1, "");
         founderCount++;
-        _founder[founderCount] = account;
+        _founder[account] = founderCount;
         _lockedTokens[id] = true;
         _tokenOwners[msg.sender] = true;
 
@@ -212,18 +211,29 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         uint256 amount,
         bytes memory data
     ) public virtual override {
-        require(isTokenUnlocked(id), "Token is locked");
+        require(isTokenUnlocked(id, from), "Token is locked");
         super.safeTransferFrom(from, to, id, amount, data);
     }
 
+    // Function for safe batch transfer
+    function safeBatchTransferFrom(
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) public virtual override {
+        for (uint256 i = 0; i < ids.length; i++) {
+            require(isTokenUnlocked(ids[i], from), "Token is locked");
+        }
+        super.safeBatchTransferFrom(from, to, ids, amounts, data);
+    }
+
     // Function to unlock token
-    function unlockToken(uint256 tokenId) public onlyOwner {
+    function unlockToken(address account, uint256 tokenId) public onlyOwner {
         require(_lockedTokens[tokenId], "Token is not locked");
-        require(
-            block.timestamp >= unlockTime(tokenId),
-            "Token is still locked"
-        );
         _lockedTokens[tokenId] = false;
+        _unlockTimes[account][tokenId] = block.timestamp;
         emit TokenUnlocked(tokenId);
     }
 
@@ -257,17 +267,20 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
         return super.balanceOfBatch(accounts, ids);
     }
 
-    // Function to get unlock time
-    function unlockTime(uint256 tokenId) public view returns (uint256) {
-        require(_lockedTokens[tokenId], "Token is not locked");
-        return block.timestamp + (_lockedDays * 1 days);
+    // Function to get unlock time for user
+    function unlockTime(
+        address account,
+        uint256 tokenId
+    ) public view returns (uint256) {
+        return _unlockTimes[account][tokenId];
     }
 
-    // Function to get token lock status
-    function isTokenUnlocked(uint256 tokenId) public view returns (bool) {
-        return
-            !_lockedTokens[tokenId] ||
-            _unlockTimes[msg.sender][tokenId] <= block.timestamp;
+    // Function to get token lock status for user with unlock time
+    function isTokenUnlocked(
+        uint256 tokenId,
+        address account
+    ) public view returns (bool) {
+        return _unlockTimes[account][tokenId] <= block.timestamp;
     }
 
     // Function to check voucher code and return price
@@ -308,5 +321,10 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     // Renounce ownership
     function renounceOwnership() public onlyOwner {
         _owner = address(0);
+    }
+
+    // Function to withdraw eth
+    function withdraw() public onlyOwner {
+        payable(_owner).transfer(address(this).balance);
     }
 }
