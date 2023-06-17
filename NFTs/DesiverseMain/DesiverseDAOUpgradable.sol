@@ -25,7 +25,7 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
     address public _owner;
     uint256 private _maxSupply;
     uint256 private _lockedDays;
-    uint256 private _tokenId;
+    uint256 private _tokenId = 1;
     uint256 private founderCount;
     uint256 private price;
     uint256 private codeCounter;
@@ -136,71 +136,70 @@ contract DesiverseDao is Initializable, ERC1155Upgradeable {
 
     // Function to buy NFT with voucher code
     function buy(
-        address account,
-        uint256 id,
         string memory voucherCode
-    ) public payable approval(account) {
-        require(founderCount <= _maxSupply, "No more token for buy");
-        require(
-            !_tokenOwners[msg.sender],
-            "You can't have more than one token"
-        );
-        require(
-            _vouchers[voucherCode].Vouchertype > 0 &&
-                _vouchers[voucherCode].Vouchertype < 4,
-            "Invalid voucher code"
-        );
-        require(_vouchers[voucherCode].Count > 0, "Cannot redeem voucher");
-        uint256 _price;
-        if (_vouchers[voucherCode].Vouchertype == 1) {
-            _price = (price * 85) / 100;
-            require(msg.value == _price, "Eth Invalid");
-        } else if (_vouchers[voucherCode].Vouchertype == 2) {
-            _price = (price * 50) / 100;
-            require(msg.value == _price, "Eth Invalid");
-        } else if (_vouchers[voucherCode].Vouchertype == 3) {
-            _price = 0;
-            require(msg.value == _price, "Eth Invalid");
-        }
-        safeTransferFrom(_owner, account, id, 1, "");
-        founderCount++;
-        _founder[account] = founderCount;
-        _lockedTokens[id] = true;
-        _tokenOwners[msg.sender] = true;
-        _vouchers[voucherCode].Count--;
-
-        // Set the unlock time for this token and user after 30 days
-        uint256 unlockingTime = block.timestamp +
-            (_lockedDays * 1 days) +
-            1 days;
-
-        emit TokenLocked(id, unlockingTime);
-    }
-
-    // Function to buy only
-    function buyOnly(
-        address account,
-        uint256 id
-    ) public payable approval(account) {
+    ) public payable approval (msg.sender) {
         require(founderCount <= _maxSupply, "No more token for buy");
         require(
             !_tokenOwners[msg.sender],
             "You are not allowed to buy more token, Only one time buy allowed"
         );
+        require(bytes(voucherCode).length > 0, "Voucher code is required");
+        require(
+            _vouchers[voucherCode].Vouchertype > 0 &&
+                _vouchers[voucherCode].Vouchertype < 4,
+            "Invalid voucher code"
+        );
+        require(_vouchers[voucherCode].Count > 0, "Voucher Expired");
+        uint256 _price;
+        if (_vouchers[voucherCode].Vouchertype == 1) {
+            _price = (price * 85) / 100;
+            require(msg.value == _price, "Invalid Eth");
+        } else if (_vouchers[voucherCode].Vouchertype == 2) {
+            _price = (price * 50) / 100;
+            require(msg.value == _price, "Invalid Eth");
+        } else if (_vouchers[voucherCode].Vouchertype == 3) {
+            _price = 0;
+            require(msg.value == _price, "Invalid Eth");
+        }
 
-        require(msg.value == price, "Invalid Eth");
-        safeTransferFrom(_owner, account, id, 1, "");
+        safeTransferFrom(_owner, msg.sender, _tokenId, 1, "");
         founderCount++;
-        _founder[account] = founderCount;
-        _lockedTokens[id] = true;
+        _founder[msg.sender] = founderCount;
+        _lockedTokens[_tokenId] = true;
         _tokenOwners[msg.sender] = true;
+        _vouchers[voucherCode].Count--;
+        _tokenId++;
 
         // Set the unlock time for this token and user after 30 days
         uint256 unlockingTime = block.timestamp +
             (_lockedDays * 1 days) +
             1 days;
 
-        emit TokenLocked(id, unlockingTime);
+        emit TokenLocked(_tokenId - 1, unlockingTime);
+    }
+
+    // Function to buy only
+    function buyOnly() public payable approval(msg.sender) {
+        require(founderCount <= _maxSupply, "No more token for buy");
+        require(
+            !_tokenOwners[msg.sender],
+            "You are not allowed to buy more token, Only one time buy allowed"
+        );
+        require(msg.value == price, "Invalid Eth");
+
+        safeTransferFrom(_owner, msg.sender, _tokenId, 1, "");
+        founderCount++;
+        _founder[msg.sender] = founderCount;
+        _lockedTokens[_tokenId] = true;
+        _tokenOwners[msg.sender] = true;
+        _tokenId++;
+
+        // Set the unlock time for this token and user after 30 days
+        uint256 unlockingTime = block.timestamp +
+            (_lockedDays * 1 days) +
+            1 days;
+
+        emit TokenLocked(_tokenId - 1, unlockingTime);
     }
 
     // Function for safe transfer
