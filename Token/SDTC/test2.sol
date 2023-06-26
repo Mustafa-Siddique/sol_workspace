@@ -10,12 +10,12 @@ contract SaveTheDogsToken is ERC20 {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     // Constants
-    uint256 public constant TOTAL_SUPPLY = 99999999 * 10**18; // 99,999,999 tokens
+    uint256 public constant TOTAL_SUPPLY = 99999999 * 10 ** 18; // 99,999,999 tokens
     uint256 public constant VESTING_DURATION = 9 * 30 days; // 9 months
     uint256 public constant LOCKUP_DURATION = 3 * 30 days; // 3 months
     uint256 public constant PHASE_DURATION = 3 * 30 days; // 3 months
-    uint256 public constant MAX_SELLABLE_PERCENTAGE = 0.1 * 10**18; // 0.1%
-    uint256 public constant MAX_PHASE_SELLABLE_PERCENTAGE = 1 * 10**18; // 1%
+    uint256 public constant MAX_SELLABLE_PERCENTAGE = 0.1 * 10 ** 18; // 0.1%
+    uint256 public constant MAX_PHASE_SELLABLE_PERCENTAGE = 1 * 10 ** 18; // 1%
 
     // Addresses
     address public teamAndInvestorAddress;
@@ -39,12 +39,18 @@ contract SaveTheDogsToken is ERC20 {
 
     // Modifiers
     modifier onlyPublicSale() {
-        require(msg.sender == publicSaleAddress, "Caller is not the public sale address");
+        require(
+            msg.sender == publicSaleAddress,
+            "Caller is not the public sale address"
+        );
         _;
     }
 
     modifier onlyDuringSale() {
-        require(block.timestamp >= saleStartTime && block.timestamp <= saleEndTime, "Sale is not active");
+        require(
+            block.timestamp >= saleStartTime && block.timestamp <= saleEndTime,
+            "Sale is not active"
+        );
         _;
     }
 
@@ -76,32 +82,52 @@ contract SaveTheDogsToken is ERC20 {
 
         // Vesting Setup
         teamAndInvestorVestingStartTime = block.timestamp;
-        teamAndInvestorVestingEndTime = teamAndInvestorVestingStartTime.add(VESTING_DURATION);
+        teamAndInvestorVestingEndTime = teamAndInvestorVestingStartTime.add(
+            VESTING_DURATION
+        );
 
         // Sale Setup
         saleStartTime = block.timestamp;
-        saleEndTime = saleStartTime.add(LOCKUP_DURATION.add(PHASE_DURATION.mul(7)));
+        saleEndTime = saleStartTime.add(
+            LOCKUP_DURATION.add(PHASE_DURATION.mul(7))
+        );
         phaseStartTime = saleStartTime.add(LOCKUP_DURATION);
         phaseEndTime = phaseStartTime.add(PHASE_DURATION);
     }
 
     // Public Sale
     function buyTokens() external payable onlyDuringSale {
-        require(msg.value >= 100 * 10**18 && msg.value <= 100000 * 10**18, "Invalid investment amount");
+        require(
+            msg.value >= 100 * 10 ** 18 && msg.value <= 100000 * 10 ** 18,
+            "Invalid investment amount"
+        );
 
-        uint256 tokensToBuy = msg.value.div(0.002 * 10**18);
+        uint256 tokensToBuy = msg.value.div(0.002 * 10 ** 18);
 
-        require(balanceOf(publicSaleAddress) >= tokensToBuy, "Insufficient token balance for sale");
+        require(
+            balanceOf(publicSaleAddress) >= tokensToBuy,
+            "Insufficient token balance for sale"
+        );
 
-        purchaseAmount[msg.sender] = purchaseAmount[msg.sender].add(tokensToBuy);
+        purchaseAmount[msg.sender] = purchaseAmount[msg.sender].add(
+            tokensToBuy
+        );
 
         uint256 currentPhase = getCurrentSalePhase();
 
-        require(salePhase[msg.sender] <= currentPhase, "Tokens can only be bought in the current phase");
+        require(
+            salePhase[msg.sender] <= currentPhase,
+            "Tokens can only be bought in the current phase"
+        );
 
-        uint256 tokensPurchased = purchaseAmount[msg.sender].sub(vestedBalance[msg.sender]);
+        uint256 tokensPurchased = purchaseAmount[msg.sender].sub(
+            vestedBalance[msg.sender]
+        );
 
-        require(tokensPurchased <= MAX_PHASE_SELLABLE_PERCENTAGE, "Exceeded maximum phase sellable percentage");
+        require(
+            tokensPurchased <= MAX_PHASE_SELLABLE_PERCENTAGE,
+            "Exceeded maximum phase sellable percentage"
+        );
 
         _transfer(publicSaleAddress, msg.sender, tokensToBuy);
 
@@ -114,18 +140,32 @@ contract SaveTheDogsToken is ERC20 {
 
     // Vesting Release
     function releaseVestedTokens() external {
-        require(msg.sender == teamAndInvestorAddress, "Caller is not the team and investor address");
-        require(block.timestamp > teamAndInvestorVestingStartTime, "Vesting has not started");
+        require(
+            msg.sender == teamAndInvestorAddress,
+            "Caller is not the team and investor address"
+        );
+        require(
+            block.timestamp > teamAndInvestorVestingStartTime,
+            "Vesting has not started"
+        );
 
         uint256 currentBalance = balanceOf(teamAndInvestorAddress);
-        uint256 vestedAmount = currentBalance.mul(block.timestamp.sub(teamAndInvestorVestingStartTime)).div(VESTING_DURATION);
-        uint256 unreleasedAmount = vestedAmount.sub(vestedBalance[teamAndInvestorAddress]);
+        uint256 vestedAmount = currentBalance
+            .mul(block.timestamp.sub(teamAndInvestorVestingStartTime))
+            .div(VESTING_DURATION);
+        uint256 unreleasedAmount = vestedAmount.sub(
+            vestedBalance[teamAndInvestorAddress]
+        );
 
         require(unreleasedAmount > 0, "No vested tokens available for release");
 
         vestedBalance[teamAndInvestorAddress] = vestedAmount;
 
-        _transfer(teamAndInvestorAddress, teamAndInvestorAddress, unreleasedAmount);
+        _transfer(
+            teamAndInvestorAddress,
+            teamAndInvestorAddress,
+            unreleasedAmount
+        );
     }
 
     // Internal Transfer
@@ -135,7 +175,10 @@ contract SaveTheDogsToken is ERC20 {
         uint256 amount
     ) internal override {
         if (sender == teamAndInvestorAddress) {
-            require(block.timestamp >= teamAndInvestorVestingEndTime, "Tokens are still vesting");
+            require(
+                block.timestamp >= teamAndInvestorVestingEndTime,
+                "Tokens are still vesting"
+            );
         }
 
         super._transfer(sender, recipient, amount);
@@ -145,7 +188,9 @@ contract SaveTheDogsToken is ERC20 {
     function getCurrentSalePhase() public view returns (uint256) {
         if (block.timestamp < phaseStartTime) {
             return 0;
-        } else if (block.timestamp >= phaseStartTime && block.timestamp <= saleEndTime) {
+        } else if (
+            block.timestamp >= phaseStartTime && block.timestamp <= saleEndTime
+        ) {
             uint256 timeSincePhaseStart = block.timestamp.sub(phaseStartTime);
             uint256 phase = timeSincePhaseStart.div(PHASE_DURATION).add(1);
             if (phase > 7) {
@@ -160,7 +205,10 @@ contract SaveTheDogsToken is ERC20 {
 
     // Withdraw ETH from the contract
     function withdrawETH() external {
-        require(msg.sender == marketingAddress, "Caller is not the marketing address");
+        require(
+            msg.sender == marketingAddress,
+            "Caller is not the marketing address"
+        );
         payable(marketingAddress).transfer(address(this).balance);
     }
 }
