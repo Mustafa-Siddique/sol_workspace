@@ -174,10 +174,12 @@ contract Ownable is Context {
 // 15% of tokens allocated to team and investors (vesting period of 9 months)
 // 15% of tokens allocated to team and advisors (vesting of 6 months)
 
+// Tax:
+// 5% tax on every transaction to an operational wallet
+
 // Token Sale:
-// Minimum investment: 500 SDTC
-// Maximum investment: 50000000 SDTC
-// 3-month lock-up period for investors (can sell up to 0.1% of total supply)
+// Minimum investment: 50 SDTC
+// Maximum investment: 100000 SDTC
 // 6-month vesting period for team and advisors (weekly release of vested tokens)
 
 contract SaveTheDogsToken is Context, IBEP20, Ownable {

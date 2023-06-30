@@ -227,10 +227,10 @@ contract vehicleModificationTracker {
     }
 
     // Constructor
-    constructor(address _tokenAddress) {
+    constructor() {
         owner = msg.sender;
         userTypes[msg.sender] = UserType.SuperAdmin;
-        secondaryToken = IERC20(_tokenAddress);
+        secondaryToken = IERC20(0x0000000000000000000000000000000000000000);
     }
 
     // ------------------------- Payable Functions -------------------------
