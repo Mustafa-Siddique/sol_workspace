@@ -186,9 +186,8 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     using SafeMath for uint256;
 
     // Addresses
-    address payable public teamAndInvestorsAddress;
-    address payable public teamAndAdvisorsAddress;
     address payable public marketingAddress;
+    address payable public operationalWallet;
 
     // Token
     string private _name = "Save the Dogs";
@@ -200,33 +199,24 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     uint256 public minInvestment = 500 * decimal;
     uint256 public maxInvestment = 50000000 * decimal;
 
-    // 15% of tokens allocated to team and investors (vesting period of 9 months)
-    uint256 public teamAndInvestorsAllocation = _totalSupply.mul(15).div(100);
-    // 15% of tokens allocated to team and advisors (vesting of 6 months)
-    uint256 public teamAndAdvisorsAllocation = _totalSupply.mul(15).div(100);
-
-    // Vesting
-    uint256 public teamAndInvestorsVestingTime = block.timestamp + 9 * 30 days;
-    uint256 public teamAndAdvisorsVestingTime = block.timestamp + 6 * 30 days;
-
-    uint256 public teamAndInvestorsClaimed;
-    uint256 public teamAndAdvisorsClaimed;
-
-    uint256 public teamAndInvestorsVestingClaimPeriod = 30 days;
-    uint256 public teamAndAdvisorsVestingClaimPeriod = 7 days;
+    // 5% tax on every transaction to an operational wallet
+    uint256 public tax = 5;
+    uint256 public taxDivisor = 100;
 
     // Mapping
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
-    mapping(address => bool) public whitelist;
+    mapping(address => bool) public isExcludedFromTax;
 
     // Constructor
     constructor() {
-        teamAndInvestorsAddress = payable(0x0);
-        teamAndAdvisorsAddress = payable(0x0);
         marketingAddress = payable(0x0);
         _balances[msg.sender] = _totalSupply;
         emit Transfer(address(0), msg.sender, _totalSupply);
+        isExcludedFromTax[address(this)] = true;
+        isExcludedFromTax[owner()] = true;
+        isExcludedFromTax[marketingAddress] = true;
+        isExcludedFromTax[operationalWallet] = true;
     }
 
     // Function to get token name
@@ -343,47 +333,34 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
         uint256 amount
     ) internal {
         require(
-            sender != address(0),
-            "BEP20: transfer from the zero address"
+            sender != address(0) && recipient != address(0),
+            "BEP20: transfer from or to the zero address"
         );
-        require(
-            recipient != address(0),
-            "BEP20: transfer to the zero address"
-        );
-        require(amount > 0, "Transfer amount must be greater than zero");
+        require(amount > minInvestment, "Amount is less than min investment");
+        require(amount < maxInvestment, "Amount is more than max investment");
         require(
             _balances[sender] >= amount,
             "BEP20: transfer amount exceeds balance"
         );
-
-        if (sender == teamAndInvestorsAddress) {
-            require(
-                block.timestamp >= teamAndInvestorsVestingTime,
-                "Tokens are locked"
-            );
-            uint256 availableTokens = getAvailableTokensForTeamAndInvestors();
-            require(
-                availableTokens >= amount,
-                "BEP20: transfer amount exceeds available tokens"
-            );
+        if (
+            sender != owner() &&
+            recipient != owner() &&
+            sender != address(this) &&
+            recipient != address(this) &&
+            sender != marketingAddress &&
+            recipient != marketingAddress &&
+            sender != operationalWallet &&
+            recipient != operationalWallet
+        ) {
+            uint256 taxAmount = amount.mul(tax).div(taxDivisor);
+            uint256 tokensToTransfer = amount.sub(taxAmount);
             _balances[sender] = _balances[sender].sub(amount);
-            _balances[recipient] = _balances[recipient].add(amount);
-            teamAndInvestorsClaimed = teamAndInvestorsClaimed.add(amount);
-            emit Transfer(sender, recipient, amount);
-        } else if (sender == teamAndAdvisorsAddress) {
-            require(
-                block.timestamp >= teamAndAdvisorsVestingTime,
-                "Tokens are locked"
+            _balances[recipient] = _balances[recipient].add(tokensToTransfer);
+            _balances[operationalWallet] = _balances[operationalWallet].add(
+                taxAmount
             );
-            uint256 availableTokens = getAvailableTokensForTeamAndAdvisors();
-            require(
-                availableTokens >= amount,
-                "BEP20: transfer amount exceeds available tokens"
-            );
-            _balances[sender] = _balances[sender].sub(amount);
-            _balances[recipient] = _balances[recipient].add(amount);
-            teamAndAdvisorsClaimed = teamAndAdvisorsClaimed.add(amount);
-            emit Transfer(sender, recipient, amount);
+            emit Transfer(sender, recipient, tokensToTransfer);
+            emit Transfer(sender, operationalWallet, taxAmount);
         } else {
             _balances[sender] = _balances[sender].sub(amount);
             _balances[recipient] = _balances[recipient].add(amount);
@@ -392,175 +369,12 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Internal function to approve tokens
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal {
-        require(
-            owner != address(0),
-            "BEP20: approve from the zero address"
-        );
-        require(
-            spender != address(0),
-            "BEP20: approve to the zero address"
-        );
+    function _approve(address owner, address spender, uint256 amount) internal {
+        require(owner != address(0), "BEP20: approve from the zero address");
+        require(spender != address(0), "BEP20: approve to the zero address");
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
-    }
-
-    // Function to get available tokens for team and investors
-    function getAvailableTokensForTeamAndInvestors()
-        public
-        view
-        returns (uint256)
-    {
-        uint256 currentBalance = balanceOf(teamAndInvestorsAddress);
-        uint256 availableTokens = currentBalance.sub(teamAndInvestorsClaimed);
-        if (block.timestamp >= teamAndInvestorsVestingTime) {
-            return availableTokens;
-        } else {
-            uint256 totalVestingTime = teamAndInvestorsVestingTime.sub(
-                block.timestamp
-            );
-            uint256 timePassed = totalVestingTime.sub(
-                getTeamAndInvestorsVestingTimeLeft()
-            );
-            uint256 vestedTokens = teamAndInvestorsAllocation.mul(timePassed).div(
-                totalVestingTime
-            );
-            return vestedTokens.sub(teamAndInvestorsClaimed);
-        }
-    }
-
-    // Function to get available tokens for team and advisors
-    function getAvailableTokensForTeamAndAdvisors()
-        public
-        view
-        returns (uint256)
-    {
-        uint256 currentBalance = balanceOf(teamAndAdvisorsAddress);
-        uint256 availableTokens = currentBalance.sub(teamAndAdvisorsClaimed);
-        if (block.timestamp >= teamAndAdvisorsVestingTime) {
-            return availableTokens;
-        } else {
-            uint256 totalVestingTime = teamAndAdvisorsVestingTime.sub(
-                block.timestamp
-            );
-            uint256 timePassed = totalVestingTime.sub(
-                getTeamAndAdvisorsVestingTimeLeft()
-            );
-            uint256 vestedTokens = teamAndAdvisorsAllocation.mul(timePassed).div(
-                totalVestingTime
-            );
-            return vestedTokens.sub(teamAndAdvisorsClaimed);
-        }
-    }
-
-    // Function to get vesting time left
-    function getVestingTimeLeft(address _wallet) public view returns (uint256) {
-        if (_wallet == teamAndInvestorsAddress) {
-            return getTeamAndInvestorsVestingTimeLeft();
-        } else if (_wallet == teamAndAdvisorsAddress) {
-            return getTeamAndAdvisorsVestingTimeLeft();
-        } else {
-            return 0;
-        }
-    }
-
-    // Function to get claim tokens
-    function claimTokens() public {
-        require(
-            msg.sender == teamAndInvestorsAddress ||
-                msg.sender == teamAndAdvisorsAddress,
-            "You are not allowed to claim tokens"
-        );
-        if (msg.sender == teamAndInvestorsAddress) {
-            require(
-                block.timestamp >= teamAndInvestorsVestingTime,
-                "Tokens are locked"
-            );
-            uint256 availableTokens = getAvailableTokensForTeamAndInvestors();
-            require(
-                availableTokens > 0,
-                "There are no available tokens to claim"
-            );
-            uint256 tokensToClaim = availableTokens.mul(10).div(1000);
-            require(
-                tokensToClaim > 0,
-                "There are no available tokens to claim"
-            );
-            _balances[teamAndInvestorsAddress] = _balances[teamAndInvestorsAddress].sub(
-                tokensToClaim
-            );
-            _balances[msg.sender] = _balances[msg.sender].add(tokensToClaim);
-            teamAndInvestorsClaimed = teamAndInvestorsClaimed.add(tokensToClaim);
-            emit Transfer(teamAndInvestorsAddress, msg.sender, tokensToClaim);
-        } else if (msg.sender == teamAndAdvisorsAddress) {
-            require(
-                block.timestamp >= teamAndAdvisorsVestingTime,
-                "Tokens are locked"
-            );
-            uint256 availableTokens = getAvailableTokensForTeamAndAdvisors();
-            require(
-                availableTokens > 0,
-                "There are no available tokens to claim"
-            );
-            uint256 tokensToClaim = availableTokens.mul(10).div(1000);
-            require(
-                tokensToClaim > 0,
-                "There are no available tokens to claim"
-            );
-            _balances[teamAndAdvisorsAddress] = _balances[teamAndAdvisorsAddress].sub(
-                tokensToClaim
-            );
-            _balances[msg.sender] = _balances[msg.sender].add(tokensToClaim);
-            teamAndAdvisorsClaimed = teamAndAdvisorsClaimed.add(tokensToClaim);
-            emit Transfer(teamAndAdvisorsAddress, msg.sender, tokensToClaim);
-        }
-    }
-
-    // Function to get team and investors vesting time left
-    function getTeamAndInvestorsVestingTimeLeft()
-        public
-        view
-        returns (uint256)
-    {
-        if (block.timestamp >= teamAndInvestorsVestingTime) {
-            return 0;
-        } else {
-            return teamAndInvestorsVestingTime.sub(block.timestamp);
-        }
-    }
-
-    // Function to get team and advisors vesting time left
-    function getTeamAndAdvisorsVestingTimeLeft()
-        public
-        view
-        returns (uint256)
-    {
-        if (block.timestamp >= teamAndAdvisorsVestingTime) {
-            return 0;
-        } else {
-            return teamAndAdvisorsVestingTime.sub(block.timestamp);
-        }
-    }
-
-    // Function to set team and investors vesting time
-    function setTeamAndInvestorsAddress(address payable _wallet)
-        public
-        onlyOwner
-    {
-        teamAndInvestorsAddress = _wallet;
-    }
-
-    // Function to set team and advisors vesting time
-    function setTeamAndAdvisorsAddress(address payable _wallet)
-        public
-        onlyOwner
-    {
-        teamAndAdvisorsAddress = _wallet;
     }
 
     // Function to set marketing address
@@ -570,19 +384,16 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
 
     // Function to withdraw marketing funds
     function withdrawMarketingFunds() public onlyOwner {
-        require(
-            marketingAddress != address(0),
-            "Marketing address is not set"
-        );
+        require(marketingAddress != address(0), "Marketing address is not set");
         uint256 balance = address(this).balance;
         marketingAddress.transfer(balance);
     }
 
     // Function to withdraw BEP20 tokens
-    function withdrawBEP20Tokens(address _tokenAddress, uint256 _amount)
-        public
-        onlyOwner
-    {
+    function withdrawBEP20Tokens(
+        address _tokenAddress,
+        uint256 _amount
+    ) public onlyOwner {
         IBEP20 token = IBEP20(_tokenAddress);
         require(
             _amount <= token.balanceOf(address(this)),
@@ -610,5 +421,20 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
         _balances[msg.sender] = _balances[msg.sender].sub(_amount);
         _totalSupply = _totalSupply.sub(_amount);
         emit Transfer(msg.sender, address(0), _amount);
+    }
+
+    // Function to exclude address from tax
+    function excludeFromTax(address _address) public onlyOwner {
+        isExcludedFromTax[_address] = true;
+    }
+
+    // Function to include address in tax
+    function includeInTax(address _address) public onlyOwner {
+        isExcludedFromTax[_address] = false;
+    }
+
+    // Function to set tax
+    function setTax(uint256 _tax) public onlyOwner {
+        tax = _tax;
     }
 }
