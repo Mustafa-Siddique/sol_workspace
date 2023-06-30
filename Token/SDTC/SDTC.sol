@@ -14,14 +14,15 @@ interface IBEP20 {
 
     function balanceOf(address account) external view returns (uint256);
 
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) external returns (bool);
 
-    function allowance(address _owner, address spender)
-        external
-        view
-        returns (uint256);
+    function allowance(
+        address _owner,
+        address spender
+    ) external view returns (uint256);
 
     function approve(address spender, uint256 amount) external returns (bool);
 
@@ -171,10 +172,14 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     address payable public marketingAddress;
     address payable public operationalWallet;
 
+    // Launch date
+    uint256 private marketActiveAt;
+    bool public marketActive = false;
+
     // Token
     string private _name = "Save the Dogs";
     string private _symbol = "STDC";
-    uint256 private decimal = 10**18;
+    uint256 private decimal = 10 ** 18;
     uint256 private _totalSupply = 99999999 * decimal;
 
     // Investment limits
@@ -227,11 +232,10 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to transfer tokens
-    function transfer(address recipient, uint256 amount)
-        public
-        override
-        returns (bool)
-    {
+    function transfer(
+        address recipient,
+        uint256 amount
+    ) public override returns (bool) {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -242,21 +246,18 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to get allowance
-    function allowance(address owner, address spender)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function allowance(
+        address owner,
+        address spender
+    ) public view override returns (uint256) {
         return _allowances[owner][spender];
     }
 
     // Function to approve tokens
-    function approve(address spender, uint256 amount)
-        public
-        override
-        returns (bool)
-    {
+    function approve(
+        address spender,
+        uint256 amount
+    ) public override returns (bool) {
         _approve(_msgSender(), spender, amount);
         return true;
     }
@@ -284,11 +285,10 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to increase allowance
-    function increaseAllowance(address spender, uint256 addedValue)
-        public
-        virtual
-        returns (bool)
-    {
+    function increaseAllowance(
+        address spender,
+        uint256 addedValue
+    ) public virtual returns (bool) {
         _approve(
             _msgSender(),
             spender,
@@ -298,11 +298,10 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to decrease allowance
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
-        virtual
-        returns (bool)
-    {
+    function decreaseAllowance(
+        address spender,
+        uint256 subtractedValue
+    ) public virtual returns (bool) {
         _approve(
             _msgSender(),
             spender,
@@ -342,6 +341,11 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
                 amount > minInvestment,
                 "Amount is less than min investment"
             );
+            require(marketActive, "Market is not active");
+            require(
+                block.timestamp > marketActiveAt + 5,
+                "You cannot buy at launch"
+            );
             require(
                 amount < maxInvestment,
                 "Amount is more than max investment"
@@ -363,11 +367,7 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Internal function to approve tokens
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal {
+    function _approve(address owner, address spender, uint256 amount) internal {
         require(owner != address(0), "BEP20: approve from the zero address");
         require(spender != address(0), "BEP20: approve to the zero address");
 
@@ -388,10 +388,10 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to withdraw BEP20 tokens
-    function withdrawBEP20Tokens(address _tokenAddress, uint256 _amount)
-        public
-        onlyOwner
-    {
+    function withdrawBEP20Tokens(
+        address _tokenAddress,
+        uint256 _amount
+    ) public onlyOwner {
         IBEP20 token = IBEP20(_tokenAddress);
         require(
             _amount <= token.balanceOf(address(this)),
@@ -434,5 +434,15 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     // Function to set tax
     function setTax(uint256 _tax) public onlyOwner {
         tax = _tax;
+    }
+
+    // Function to set market launch date
+    function setMarketActiveTime(uint256 _marketActiveAt) public onlyOwner {
+        marketActiveAt = _marketActiveAt;
+    }
+
+    // Function to set market active
+    function setMarketActive(bool _marketActive) public onlyOwner {
+        marketActive = _marketActive;
     }
 }

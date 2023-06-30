@@ -4,13 +4,6 @@ pragma solidity ^0.8.19;
 import "./IERC20.sol";
 import "./SafeMath.sol";
 
-// Token Distribution:
-// Total Supply: 99,999,999 SDTC
-
-// 15% of tokens allocated to team and investors (vesting period of 9 months)
-// 15% of tokens allocated to team and advisors (vesting of 6 months)
-// 6-month vesting period for team and advisors (weekly release of vested tokens)
-
 contract SDTCVesting {
     using SafeMath for uint256;
     IERC20 public token;
