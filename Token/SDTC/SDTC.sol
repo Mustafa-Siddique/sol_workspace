@@ -14,15 +14,14 @@ interface IBEP20 {
 
     function balanceOf(address account) external view returns (uint256);
 
-    function transfer(
-        address recipient,
-        uint256 amount
-    ) external returns (bool);
+    function transfer(address recipient, uint256 amount)
+        external
+        returns (bool);
 
-    function allowance(
-        address _owner,
-        address spender
-    ) external view returns (uint256);
+    function allowance(address _owner, address spender)
+        external
+        view
+        returns (uint256);
 
     function approve(address spender, uint256 amount) external returns (bool);
 
@@ -165,23 +164,6 @@ contract Ownable is Context {
     }
 }
 
-// Name: Save the Dogs
-// Symbol: STDC
-// Supply: 99,999,999 tokens (fixed supply)
-
-// Token Distribution:
-
-// 15% of tokens allocated to team and investors (vesting period of 9 months)
-// 15% of tokens allocated to team and advisors (vesting of 6 months)
-
-// Tax:
-// 5% tax on every transaction to an operational wallet
-
-// Token Sale:
-// Minimum investment: 50 SDTC
-// Maximum investment: 100000 SDTC
-// 6-month vesting period for team and advisors (weekly release of vested tokens)
-
 contract SaveTheDogsToken is Context, IBEP20, Ownable {
     using SafeMath for uint256;
 
@@ -192,7 +174,7 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     // Token
     string private _name = "Save the Dogs";
     string private _symbol = "STDC";
-    uint256 private decimal = 10 ** 18;
+    uint256 private decimal = 10**18;
     uint256 private _totalSupply = 99999999 * decimal;
 
     // Investment limits
@@ -201,7 +183,7 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
 
     // 5% tax on every transaction to an operational wallet
     uint256 public tax = 5;
-    uint256 public taxDivisor = 100;
+    uint256 private taxDivisor = 100;
 
     // Mapping
     mapping(address => uint256) private _balances;
@@ -245,10 +227,11 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to transfer tokens
-    function transfer(
-        address recipient,
-        uint256 amount
-    ) public override returns (bool) {
+    function transfer(address recipient, uint256 amount)
+        public
+        override
+        returns (bool)
+    {
         _transfer(_msgSender(), recipient, amount);
         return true;
     }
@@ -259,18 +242,21 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to get allowance
-    function allowance(
-        address owner,
-        address spender
-    ) public view override returns (uint256) {
+    function allowance(address owner, address spender)
+        public
+        view
+        override
+        returns (uint256)
+    {
         return _allowances[owner][spender];
     }
 
     // Function to approve tokens
-    function approve(
-        address spender,
-        uint256 amount
-    ) public override returns (bool) {
+    function approve(address spender, uint256 amount)
+        public
+        override
+        returns (bool)
+    {
         _approve(_msgSender(), spender, amount);
         return true;
     }
@@ -298,10 +284,11 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to increase allowance
-    function increaseAllowance(
-        address spender,
-        uint256 addedValue
-    ) public virtual returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue)
+        public
+        virtual
+        returns (bool)
+    {
         _approve(
             _msgSender(),
             spender,
@@ -311,10 +298,11 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to decrease allowance
-    function decreaseAllowance(
-        address spender,
-        uint256 subtractedValue
-    ) public virtual returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue)
+        public
+        virtual
+        returns (bool)
+    {
         _approve(
             _msgSender(),
             spender,
@@ -336,8 +324,6 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
             sender != address(0) && recipient != address(0),
             "BEP20: transfer from or to the zero address"
         );
-        require(amount > minInvestment, "Amount is less than min investment");
-        require(amount < maxInvestment, "Amount is more than max investment");
         require(
             _balances[sender] >= amount,
             "BEP20: transfer amount exceeds balance"
@@ -352,6 +338,14 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
             sender != operationalWallet &&
             recipient != operationalWallet
         ) {
+            require(
+                amount > minInvestment,
+                "Amount is less than min investment"
+            );
+            require(
+                amount < maxInvestment,
+                "Amount is more than max investment"
+            );
             uint256 taxAmount = amount.mul(tax).div(taxDivisor);
             uint256 tokensToTransfer = amount.sub(taxAmount);
             _balances[sender] = _balances[sender].sub(amount);
@@ -369,7 +363,11 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Internal function to approve tokens
-    function _approve(address owner, address spender, uint256 amount) internal {
+    function _approve(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal {
         require(owner != address(0), "BEP20: approve from the zero address");
         require(spender != address(0), "BEP20: approve to the zero address");
 
@@ -390,10 +388,10 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
     }
 
     // Function to withdraw BEP20 tokens
-    function withdrawBEP20Tokens(
-        address _tokenAddress,
-        uint256 _amount
-    ) public onlyOwner {
+    function withdrawBEP20Tokens(address _tokenAddress, uint256 _amount)
+        public
+        onlyOwner
+    {
         IBEP20 token = IBEP20(_tokenAddress);
         require(
             _amount <= token.balanceOf(address(this)),
