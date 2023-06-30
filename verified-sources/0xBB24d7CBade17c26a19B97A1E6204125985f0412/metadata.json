@@ -1,0 +1,1075 @@
+{
+	"compiler": {
+		"version": "0.8.19+commit.7dd6d404"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "location",
+						"type": "string"
+					}
+				],
+				"name": "CarDealerRegistered",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "location",
+						"type": "string"
+					}
+				],
+				"name": "CarOwnerRegistered",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "location",
+						"type": "string"
+					}
+				],
+				"name": "ShopDeleted",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "location",
+						"type": "string"
+					}
+				],
+				"name": "ShopRegistered",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "_paymentTime",
+						"type": "uint256"
+					}
+				],
+				"name": "SubscriptionPaymentEvent",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "UserBlacklisted",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_VIN",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_modificationType",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_modificationDescription",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_modificationCost",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "_modificationLocation",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "_serviceProvider",
+						"type": "address"
+					}
+				],
+				"name": "addModification",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_VIN",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_color",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_ownerName",
+						"type": "string"
+					},
+					{
+						"internalType": "address",
+						"name": "_ownerWallet",
+						"type": "address"
+					}
+				],
+				"name": "addVehicle",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "blacklistUser",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_shop",
+						"type": "address"
+					}
+				],
+				"name": "deleteShop",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_owner",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "_VIN",
+						"type": "string"
+					}
+				],
+				"name": "deleteVehicleFromOwner",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_VIN",
+						"type": "string"
+					}
+				],
+				"name": "deleteVehicleFromVehicle",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "ethFee",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_shop",
+						"type": "address"
+					}
+				],
+				"name": "getDashboard",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "totalCustomers",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "totalRevenue",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "completedServices",
+								"type": "uint256"
+							},
+							{
+								"internalType": "string[]",
+								"name": "vehicleVINs",
+								"type": "string[]"
+							}
+						],
+						"internalType": "struct Dashboard",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "getLastPaymentDetails",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "address",
+								"name": "user",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "paymentTime",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "paymentAmount",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "subscriptionExpiry",
+								"type": "uint256"
+							}
+						],
+						"internalType": "struct SubscriptionPayment",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_owner",
+						"type": "address"
+					}
+				],
+				"name": "getOwnerDetails",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "string",
+								"name": "name",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "contactNumber",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "email",
+								"type": "string"
+							},
+							{
+								"internalType": "string[]",
+								"name": "vehicleVINs",
+								"type": "string[]"
+							},
+							{
+								"internalType": "address payable",
+								"name": "ownerWallet",
+								"type": "address"
+							}
+						],
+						"internalType": "struct Owner",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getPaymentOption",
+				"outputs": [
+					{
+						"internalType": "uint8",
+						"name": "",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_shop",
+						"type": "address"
+					}
+				],
+				"name": "getShopDetails",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "string",
+								"name": "ownerNames",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "name",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "location",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "contactNumber",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "email",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "website",
+								"type": "string"
+							},
+							{
+								"internalType": "uint256[]",
+								"name": "subscriptionReceipts",
+								"type": "uint256[]"
+							},
+							{
+								"internalType": "address payable",
+								"name": "shopWallet",
+								"type": "address"
+							},
+							{
+								"internalType": "string",
+								"name": "officialID",
+								"type": "string"
+							}
+						],
+						"internalType": "struct Shop",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getTotalEthPayment",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "getTotalEthPaymentByUser",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getTotalTokenPayment",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "getTotalTokenPaymentByUser",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "getUserType",
+				"outputs": [
+					{
+						"internalType": "enum UserType",
+						"name": "",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_VIN",
+						"type": "string"
+					}
+				],
+				"name": "getVehicleDetails",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "string",
+								"name": "VIN",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "color",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "ownerName",
+								"type": "string"
+							}
+						],
+						"internalType": "struct Vehicle",
+						"name": "",
+						"type": "tuple"
+					},
+					{
+						"components": [
+							{
+								"internalType": "string",
+								"name": "VIN",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "modificationType",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "modificationDescription",
+								"type": "string"
+							},
+							{
+								"internalType": "uint256",
+								"name": "modificationTime",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "modificationCost",
+								"type": "uint256"
+							},
+							{
+								"internalType": "string",
+								"name": "modificationLocation",
+								"type": "string"
+							},
+							{
+								"internalType": "address",
+								"name": "serviceProvider",
+								"type": "address"
+							}
+						],
+						"internalType": "struct Modification[]",
+						"name": "",
+						"type": "tuple[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "isBlacklisted",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "payForSubscription",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "payForSubscriptionInAdvance",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_ownerNames",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_name",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_location",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_contactNumber",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_email",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_website",
+						"type": "string"
+					},
+					{
+						"internalType": "address payable",
+						"name": "_shopWallet",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "_officialID",
+						"type": "string"
+					}
+				],
+				"name": "registerAutoShop",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_ownerNames",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_name",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_location",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_contactNumber",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_email",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_website",
+						"type": "string"
+					},
+					{
+						"internalType": "address payable",
+						"name": "_shopWallet",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "_officialID",
+						"type": "string"
+					}
+				],
+				"name": "registerCarDealer",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_name",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_contactNumber",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_email",
+						"type": "string"
+					},
+					{
+						"internalType": "address payable",
+						"name": "_ownerWallet",
+						"type": "address"
+					}
+				],
+				"name": "registerCarOwner",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "secondaryToken",
+				"outputs": [
+					{
+						"internalType": "contract IERC20",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_ethFee",
+						"type": "uint256"
+					}
+				],
+				"name": "setEthFee",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint8",
+						"name": "_paymentOption",
+						"type": "uint8"
+					}
+				],
+				"name": "setPaymentOption",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_tokenFee",
+						"type": "uint256"
+					}
+				],
+				"name": "setTokenFee",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "tokenFee",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalAutoShops",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalCarDealers",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalCarOwners",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalVehicles",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_newOwner",
+						"type": "address"
+					}
+				],
+				"name": "transferOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "unBlacklistUser",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_tokenAddress",
+						"type": "address"
+					}
+				],
+				"name": "updateTokenAddress",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "withdrawEthBalance",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_tokenAddress",
+						"type": "address"
+					}
+				],
+				"name": "withdrawTokenBalance",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "receive"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"useCases/vehicle-management/vehicleModificationTracker.sol": "vehicleModificationTracker"
+		},
+		"evmVersion": "paris",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"useCases/vehicle-management/Address.sol": {
+			"keccak256": "0x2bfcfa3ce6bbf74adb26546b9d2bb5aa0c66cb6cc27d9e62867c71a17f67594b",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1aaf3358438afed95c70fcc53dd7d0324c92277b411c0f718b7cf6b531aa08e2",
+				"dweb:/ipfs/QmeSBJQ5s5FZytpkTvAKbaPQoNXVdVRDfJuc7GMZU48bGg"
+			]
+		},
+		"useCases/vehicle-management/IERC20.sol": {
+			"keccak256": "0x0d3ff2c9021ae4bdb7e7b72c25841cd0ff42827509e3785eebe874fd7d03f99a",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://7c28c3b8accead50bebed2cbd586c36c7febbca51dad31c2a560d510419b8593",
+				"dweb:/ipfs/QmbdJD5RNE7HxPyg8S4PN6pAXktjXCrtLE6PZXDfig1xMZ"
+			]
+		},
+		"useCases/vehicle-management/IERC20Permit.sol": {
+			"keccak256": "0x2c206fd8e7761eff02f61ebc3a96522a1e6c8d92c864403c1703299d5712e25d",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://dd6fe6ef7f7b058ab2dd678fccd3ee85226fca0520dfb8bc8df7805cd1f602e3",
+				"dweb:/ipfs/QmVKcrWvf33fEj4grJUc3B3nC8DPkxXUuykaSMrvfLTmXJ"
+			]
+		},
+		"useCases/vehicle-management/SafeERC20.sol": {
+			"keccak256": "0x40a1715ef2d9b6fdd26a3efb6b92069de634e6308f538b667095120c375fc8dd",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://d853b26ef14e3bf7191c68ac23960bdd6c5a921bf5569bb810047c7ba5ac4753",
+				"dweb:/ipfs/QmexECRdrYrrJPDzdH9qz9G65X3B5Spdn9jFeRwTyrHH27"
+			]
+		},
+		"useCases/vehicle-management/vehicleModificationTracker.sol": {
+			"keccak256": "0x4ce7e443f9d4d388d74d3c47c3c613cbba2eba8b98464fb42d2a718970715dad",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://85ade4682abe6666bdc2413358497e3c51237885c385fcbd5290ca3f42252cbc",
+				"dweb:/ipfs/QmVtZa4YE9dSBqQSCRRi8naotXRxmx7Xyz8dgnxXenmZRj"
+			]
+		}
+	},
+	"version": 1
+}
