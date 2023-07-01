@@ -380,11 +380,14 @@ contract SaveTheDogsToken is Context, IBEP20, Ownable {
         marketingAddress = _wallet;
     }
 
-    // Function to withdraw marketing funds
-    function withdrawMarketingFunds() public onlyOwner {
-        require(marketingAddress != address(0), "Marketing address is not set");
-        uint256 balance = address(this).balance;
-        marketingAddress.transfer(balance);
+    // Function to set operational wallet
+    function setOperationalWallet(address payable _wallet) public onlyOwner {
+        operationalWallet = _wallet;
+    }
+
+    // Function to withdraw BNB funds
+    function withdrawBNB() public onlyOwner {
+        marketingAddress.transfer(address(this).balance);
     }
 
     // Function to withdraw BEP20 tokens
