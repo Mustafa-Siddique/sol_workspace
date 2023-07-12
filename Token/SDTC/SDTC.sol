@@ -113,55 +113,48 @@ library SafeMath {
 
 contract Ownable is Context {
     address private _owner;
-    address private _previousOwner;
-    uint256 private _lockTime;
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
+
+    error OwnableUnauthorizedAccount(address account);
+
+    error OwnableInvalidOwner(address owner);
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     constructor() {
         _owner = _msgSender();
         emit OwnershipTransferred(address(0), _owner);
     }
 
-    function owner() public view returns (address) {
-        return _owner;
-    }
-
     modifier onlyOwner() {
-        require(_owner == _msgSender(), "Ownable: caller is not the owner");
+        _checkOwner();
         _;
     }
 
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    function _checkOwner() internal view virtual {
+        if (owner() != _msgSender()) {
+            revert OwnableUnauthorizedAccount(_msgSender());
+        }
+    }
+
     function renounceOwnership() public virtual onlyOwner {
-        emit OwnershipTransferred(_owner, address(0));
-        _owner = address(0);
+        _transferOwnership(address(0));
     }
 
-    function getUnlockTime() public view returns (uint256) {
-        return _lockTime;
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        if (newOwner == address(0)) {
+            revert OwnableInvalidOwner(address(0));
+        }
+        _transferOwnership(newOwner);
     }
 
-    function getTime() public view returns (uint256) {
-        return block.timestamp;
-    }
-
-    function lock(uint256 time) public virtual onlyOwner {
-        _previousOwner = _owner;
-        _owner = address(0);
-        _lockTime = block.timestamp + time;
-        emit OwnershipTransferred(_owner, address(0));
-    }
-
-    function unlock() public virtual {
-        require(
-            _previousOwner == msg.sender,
-            "You don't have permission to unlock"
-        );
-        require(block.timestamp > _lockTime, "Contract is locked");
-        emit OwnershipTransferred(_owner, _previousOwner);
-        _owner = _previousOwner;
+    function _transferOwnership(address newOwner) internal virtual {
+        address oldOwner = _owner;
+        _owner = newOwner;
+        emit OwnershipTransferred(oldOwner, newOwner);
     }
 }
 
