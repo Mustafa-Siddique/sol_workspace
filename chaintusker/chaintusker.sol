@@ -33,7 +33,7 @@ contract Chaintusker is ReentrancyGuard {
     address payable public marketingWallet;
 
     // Fee for each project
-    uint256 public minFee = 20 * 10**18; // 20 USDT minimum budget
+    uint256 public minFee = 20 * 10 ** 18; // 20 USDT minimum budget
     uint256 public minDevFee = 3; // 3% dev fee
     uint256 public minMarketingFee = 7; // 7% marketing fee
     uint256 public maxDevFee = 4; // 4% dev fee
@@ -142,29 +142,16 @@ contract Chaintusker is ReentrancyGuard {
     function createProject(
         bytes12 _projectId,
         string memory _description,
-        bytes32 _projectHash,
-        uint256 _deadline,
-        uint256[] memory _milestoneRewards
+        bytes32 _projectHash
     ) public {
         require(_projectId.length > 0, "Project ID is required");
-        require(_milestoneRewards.length > 0, "Milestone are required");
-        require(_deadline > block.timestamp, "Deadline must be in the future");
         require(bytes(_description).length > 0, "Description is required");
         require(_projectHash.length > 0, "Project hash is required");
 
-        uint256 _budget = 0;
-        for (uint256 i = 0; i < _milestoneRewards.length; i++) {
-            projects[_projectId].milestoneCompleted.push(false);
-            _budget += _milestoneRewards[i];
-        }
-        projects[_projectId].milestoneRewards = _milestoneRewards;
         projects[_projectId].buyer = payable(msg.sender);
         projects[_projectId].description = _description;
         projects[_projectId].projectHash = _projectHash;
-        projects[_projectId].remainingBudget = _budget;
-        projects[_projectId].totalBudget = _budget;
         projects[_projectId].startedAt = block.timestamp;
-        projects[_projectId].deadline = _deadline;
         projects[_projectId].active = true;
 
         allProjects.push(_projectId);
@@ -172,7 +159,12 @@ contract Chaintusker is ReentrancyGuard {
     }
 
     // Offer a project to a seller
-    function offerProject(bytes12 _projectId, address payable _seller)
+    function offerProject(
+        bytes12 _projectId,
+        address payable _seller,
+        uint256 deadline,
+        uint256[] memory _milestoneRewards
+    )
         public
         payable
         onlyBuyer(_projectId)
@@ -192,18 +184,30 @@ contract Chaintusker is ReentrancyGuard {
             "Wrong amount submitted!"
         );
         require(_seller != address(0), "Seller address can't be null");
+        require(
+            _milestoneRewards.length > 0,
+            "Milestone rewards cannot be empty"
+        );
+        require(deadline > block.timestamp, "Deadline cannot be in the past");
 
+        uint256 _budget = 0;
+        for (uint256 i = 0; i < _milestoneRewards.length; i++) {
+            projects[_projectId].milestoneCompleted.push(false);
+            _budget += _milestoneRewards[i];
+        }
+
+        projects[_projectId].totalBudget = _budget;
+        projects[_projectId].remainingBudget = _budget;
+        projects[_projectId].deadline = deadline;
+        projects[_projectId].milestoneRewards = _milestoneRewards;
         projects[_projectId].offeredSeller = _seller;
         emit ProjectOffered(_projectId, _seller);
     }
 
     // Accept a project offer
-    function acceptProjectOffer(bytes12 _projectId)
-        public
-        payable
-        onlyOfferedSeller(_projectId)
-        projectExists(_projectId)
-    {
+    function acceptProjectOffer(
+        bytes12 _projectId
+    ) public payable onlyOfferedSeller(_projectId) projectExists(_projectId) {
         require(
             projects[_projectId].offeredSeller != address(0),
             "The project has not been offered"
@@ -219,10 +223,12 @@ contract Chaintusker is ReentrancyGuard {
     }
 
     // Reject a project offer and return the funds to the buyer
-    function rejectProjectOffer(bytes12 _projectId)
+    function rejectProjectOffer(
+        bytes12 _projectId
+    )
         public
         payable
-        nonReentrant()
+        nonReentrant
         onlyBuyerOrOfferedSeller(_projectId)
         projectExists(_projectId)
     {
@@ -245,10 +251,13 @@ contract Chaintusker is ReentrancyGuard {
     // Milestone completion and release milestone payment
     // If the total budget is under minFee, send minDevFee to dev wallet and minMarketingFee to marketing wallet before sending the milestone payment
     // If the total budget is over minFee, send maxDevFee to dev wallet and maxMarketingFee to marketing wallet before sending the milestone payment
-    function milestoneCompleted(bytes12 _projectId, uint256 _projectIndex)
+    function milestoneCompleted(
+        bytes12 _projectId,
+        uint256 _projectIndex
+    )
         public
         payable
-        nonReentrant()
+        nonReentrant
         onlyBuyer(_projectId)
         projectExists(_projectId)
         isAssigned(_projectId)
@@ -317,11 +326,10 @@ contract Chaintusker is ReentrancyGuard {
     }
 
     // Request a milestone payment
-    function requestMilestonePayment(bytes12 _projectId, uint256 index)
-        public
-        projectExists(_projectId)
-        isAssigned(_projectId)
-    {
+    function requestMilestonePayment(
+        bytes12 _projectId,
+        uint256 index
+    ) public projectExists(_projectId) isAssigned(_projectId) {
         require(
             projects[_projectId].milestoneCompleted[index] == true,
             "Milestone is not completed"
@@ -347,20 +355,16 @@ contract Chaintusker is ReentrancyGuard {
     }
 
     // Get projects by ID
-    function getProject(bytes12 _projectId)
-        public
-        view
-        returns (Project memory)
-    {
+    function getProject(
+        bytes12 _projectId
+    ) public view returns (Project memory) {
         return projects[_projectId];
     }
 
     // Get project milestones
-    function getProjectMilestones(bytes12 _projectId)
-        public
-        view
-        returns (uint256[] memory, bool[] memory)
-    {
+    function getProjectMilestones(
+        bytes12 _projectId
+    ) public view returns (uint256[] memory, bool[] memory) {
         return (
             projects[_projectId].milestoneRewards,
             projects[_projectId].milestoneCompleted
@@ -368,15 +372,9 @@ contract Chaintusker is ReentrancyGuard {
     }
 
     // Get project dates
-    function getProjectDates(bytes12 _projectId)
-        public
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    function getProjectDates(
+        bytes12 _projectId
+    ) public view returns (uint256, uint256, uint256) {
         return (
             projects[_projectId].startedAt,
             projects[_projectId].deadline,
@@ -385,11 +383,9 @@ contract Chaintusker is ReentrancyGuard {
     }
 
     // Get Project Seller
-    function getProjectSeller(bytes12 _projectId)
-        public
-        view
-        returns (address payable)
-    {
+    function getProjectSeller(
+        bytes12 _projectId
+    ) public view returns (address payable) {
         return projects[_projectId].seller;
     }
 
@@ -427,7 +423,9 @@ contract Chaintusker is ReentrancyGuard {
 
     // Raising a dispute from buyer or seller to the moderator
     // If the dispute is raised then the Project budget is frozen and the moderator will decide the outcome from release or refund functions
-    function raiseDispute(bytes12 _projectId)
+    function raiseDispute(
+        bytes12 _projectId
+    )
         public
         projectExists(_projectId)
         isAssigned(_projectId)
@@ -447,10 +445,13 @@ contract Chaintusker is ReentrancyGuard {
     // ----------------- MODERATOR -----------------
 
     // Release payment to the seller
-    function releasePayment(bytes12 _projectId, uint256 _milestoneIndex)
+    function releasePayment(
+        bytes12 _projectId,
+        uint256 _milestoneIndex
+    )
         public
         payable
-        nonReentrant()
+        nonReentrant
         onlyModerator
         projectExists(_projectId)
         isAssigned(_projectId)
@@ -482,10 +483,12 @@ contract Chaintusker is ReentrancyGuard {
     }
 
     // Refund payment to the buyer
-    function refundPayment(bytes12 _projectId)
+    function refundPayment(
+        bytes12 _projectId
+    )
         public
         payable
-        nonReentrant()
+        nonReentrant
         onlyModerator
         projectExists(_projectId)
         isAssigned(_projectId)
@@ -536,10 +539,9 @@ contract Chaintusker is ReentrancyGuard {
         devWallet = _devWallet;
     }
 
-    function setMarketingWallet(address payable _marketingWallet)
-        public
-        onlyOwner
-    {
+    function setMarketingWallet(
+        address payable _marketingWallet
+    ) public onlyOwner {
         require(_marketingWallet != address(0), "Wallet cannot be 0x0");
         marketingWallet = _marketingWallet;
     }
@@ -565,5 +567,4 @@ contract Chaintusker is ReentrancyGuard {
         require(_newOwner != address(0), "Owner cannot be 0x0");
         owner = _newOwner;
     }
-
 }
