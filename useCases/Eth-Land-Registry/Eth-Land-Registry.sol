@@ -39,6 +39,7 @@ struct registrationRequest {
     uint256 approvalDate;
     string uploadedFiles;
     Status status;
+    string comment;
 }
 
 struct LandTransferRequest {
@@ -49,6 +50,7 @@ struct LandTransferRequest {
     string uploadedFiles;
     uint256 approvalDate;
     Status status;
+    string comment;
 }
 
 struct LandOwner {
@@ -71,13 +73,14 @@ contract EthLandRegistry {
     // Counters
     uint256 private landCounter = 0;
     uint256 private registrationRequestCounter = 0;
+    uint256 private rejectedRequestCounter = 0;
     uint256 private transferRequestCounter = 0;
     uint256 private landOwnerCounter = 0;
 
     // Mappings
     mapping(bytes32 => Land) public lands;
-    mapping(uint256 => registrationRequest) public landRegistrationRequests;
-    mapping(uint256 => LandTransferRequest) public landTransferRequests;
+    mapping(uint256 => registrationRequest) private landRegistrationRequests;
+    mapping(uint256 => LandTransferRequest) private landTransferRequests;
     mapping(address => UserTypes) private users;
     mapping(address => LandOwner) private landOwners;
     mapping(bytes32 => LandTransferRequest[]) private landTransferHistory;
@@ -202,7 +205,8 @@ contract EthLandRegistry {
             msg.sender,
             0,
             _uploadedFiles,
-            Status.Pending
+            Status.Pending,
+            ""
         );
         emit LandRegistrationRequest(
             _landId,
@@ -244,5 +248,257 @@ contract EthLandRegistry {
             new bytes32[](0)
         );
         users[msg.sender] = UserTypes.LandOwner;
+    }
+
+    // Approve Land Registration Request
+    function approveLandRegistrationRequest(
+        uint256 _requestId
+    ) public onlyAdmin {
+        require(
+            landRegistrationRequests[_requestId].status == Status.Pending,
+            "Only pending requests can be approved"
+        );
+        registrationRequest storage _request = landRegistrationRequests[
+            _requestId
+        ];
+        landCounter++;
+        lands[_request.landId] = Land(
+            _request.landId,
+            _request.ownerName,
+            _request.location,
+            _request.area,
+            _request.owner,
+            block.timestamp
+        );
+        _request.approvalDate = block.timestamp;
+        _request.status = Status.Approved;
+        landOwners[_request.owner].landCount++;
+        landOwners[_request.owner].landIds.push(_request.landId);
+        emit LandRegistered(
+            _request.landId,
+            _request.ownerName,
+            _request.location,
+            _request.area,
+            _request.owner,
+            block.timestamp
+        );
+        emit LandRegistrationRequestApproved(
+            _request.landId,
+            _request.ownerName,
+            _request.location,
+            _request.area,
+            _request.price,
+            _request.owner,
+            block.timestamp,
+            _request.uploadedFiles
+        );
+    }
+
+    // Reject Land Registration Request with a comment
+    function rejectLandRegistrationRequest(
+        uint256 _requestId,
+        string memory _comment
+    ) public onlyAdmin {
+        require(
+            landRegistrationRequests[_requestId].status == Status.Pending,
+            "Only pending requests can be rejected"
+        );
+        registrationRequest storage _request = landRegistrationRequests[
+            _requestId
+        ];
+        _request.approvalDate = block.timestamp;
+        _request.status = Status.Rejected;
+        _request.comment = _comment;
+        rejectedRequestCounter++;
+        emit LandRegistrationRequestRejected(
+            _request.landId,
+            _request.ownerName,
+            _request.location,
+            _request.area,
+            _request.price,
+            _request.owner,
+            block.timestamp,
+            _request.uploadedFiles
+        );
+    }
+
+    // New Land Transfer Request
+    function newLandTransferRequest(
+        bytes32 _landId,
+        address _to,
+        uint256 _price,
+        string memory _uploadedFiles
+    ) public onlyLandOwnerOrAdmin(_landId) {
+        require(
+            lands[_landId].owner != _to,
+            "Land owner and new owner cannot be same"
+        );
+        transferRequestCounter++;
+        landTransferRequests[transferRequestCounter] = LandTransferRequest(
+            _landId,
+            lands[_landId].owner,
+            _to,
+            _price,
+            _uploadedFiles,
+            0,
+            Status.Pending,
+            ""
+        );
+        emit TransferRequest(
+            _landId,
+            lands[_landId].owner,
+            _to,
+            _price,
+            _uploadedFiles,
+            0
+        );
+    }
+
+    // Approve Land Transfer Request
+    function approveLandTransferRequest(uint256 _requestId)
+        public
+        onlyAdmin
+    {
+        require(
+            landTransferRequests[_requestId].status == Status.Pending,
+            "Only pending requests can be approved"
+        );
+        LandTransferRequest storage _request = landTransferRequests[
+            _requestId
+        ];
+        lands[_request.landId].owner = _request.to;
+        _request.approvalDate = block.timestamp;
+        _request.status = Status.Approved;
+        landTransferHistory[_request.landId].push(_request);
+        emit LandTransferRequestApproved(
+            _request.landId,
+            _request.from,
+            _request.to,
+            _request.price,
+            _request.uploadedFiles,
+            block.timestamp
+        );
+    }
+
+    // Reject Land Transfer Request with a comment
+    function rejectLandTransferRequest(
+        uint256 _requestId,
+        string memory _comment
+    ) public onlyAdmin {
+        require(
+            landTransferRequests[_requestId].status == Status.Pending,
+            "Only pending requests can be rejected"
+        );
+        LandTransferRequest storage _request = landTransferRequests[
+            _requestId
+        ];
+        _request.approvalDate = block.timestamp;
+        _request.status = Status.Rejected;
+        _request.comment = _comment;
+        emit LandTransferRequestRejected(
+            _request.landId,
+            _request.from,
+            _request.to,
+            _request.price,
+            _request.uploadedFiles,
+            block.timestamp
+        );
+    }
+
+    // ------------------ Getters ------------------
+
+    // Get Land Registration Request
+    function getLandRegistrationRequest(uint256 _requestId)
+        public
+        view
+        onlyAdmin()
+        returns (
+            bytes32 landId,
+            string memory ownerName,
+            string memory location,
+            uint256 area,
+            uint256 price,
+            address owner,
+            uint256 approvalDate,
+            string memory uploadedFiles,
+            Status status,
+            string memory comment
+        )
+    {
+        registrationRequest memory _request = landRegistrationRequests[
+            _requestId
+        ];
+        return (
+            _request.landId,
+            _request.ownerName,
+            _request.location,
+            _request.area,
+            _request.price,
+            _request.owner,
+            _request.approvalDate,
+            _request.uploadedFiles,
+            _request.status,
+            _request.comment
+        );
+    }
+
+    // Get Land Registration Request Status and Comment
+    function getLandRegistrationRequestStatusAndComment(uint256 _requestId)
+        public
+        view
+        returns (Status status, string memory comment)
+    {
+        registrationRequest memory _request = landRegistrationRequests[
+            _requestId
+        ];
+        return (_request.status, _request.comment);
+    }
+
+    // Get Land Transfer Request
+    function getLandTransferRequest(uint256 _requestId)
+        public
+        view
+        onlyAdmin()
+        returns (
+            bytes32 landId,
+            address from,
+            address to,
+            uint256 price,
+            string memory uploadedFiles,
+            uint256 approvalDate,
+            Status status,
+            string memory comment
+        )
+    {
+        LandTransferRequest memory _request = landTransferRequests[_requestId];
+        return (
+            _request.landId,
+            _request.from,
+            _request.to,
+            _request.price,
+            _request.uploadedFiles,
+            _request.approvalDate,
+            _request.status,
+            _request.comment
+        );
+    }
+
+    // Get Land Transfer Request Status and Comment
+    function getLandTransferRequestStatusAndComment(uint256 _requestId)
+        public
+        view
+        returns (Status status, string memory comment)
+    {
+        LandTransferRequest memory _request = landTransferRequests[_requestId];
+        return (_request.status, _request.comment);
+    }
+
+    // Get Land Transfer History
+    function getLandTransferHistory(bytes32 _landId)
+        public
+        view
+        returns (LandTransferRequest[] memory)
+    {
+        return landTransferHistory[_landId];
     }
 }
