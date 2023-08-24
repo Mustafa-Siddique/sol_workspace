@@ -187,7 +187,7 @@ contract EthLandRegistry {
         uint256 _area,
         uint256 _price,
         string memory _uploadedFiles
-    ) public returns (bytes32) {
+    ) public returns (bytes32, uint256) {
         require(
             users[msg.sender] == UserTypes.LandOwner,
             "Only land owners can request for new land registration"
@@ -227,7 +227,7 @@ contract EthLandRegistry {
             0,
             _uploadedFiles
         );
-        return _landId;
+        return (_landId, registrationRequestCounter);
     }
 
     // Land owner registration
@@ -664,5 +664,4 @@ contract EthLandRegistry {
         lands[_landId].owner = _previousOwner;
         emit ForceTransfer(_landId, _previousOwner, lands[_landId].owner);
     }
-
 }
