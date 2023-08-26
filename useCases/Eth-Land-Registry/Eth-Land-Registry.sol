@@ -82,7 +82,6 @@ contract EthLandRegistry {
     // Events
     event LandRegistered(
         bytes32 landId,
-        string ownerName,
         string location,
         uint256 area,
         address owner,
@@ -90,23 +89,10 @@ contract EthLandRegistry {
     );
     event LandRegistrationRequest(
         bytes32 landId,
-        string ownerName,
         string location,
         uint256 area,
-        uint256 price,
         address owner,
-        uint256 approvalDate,
-        string uploadedFiles
-    );
-    event LandRegistrationRequestApproved(
-        bytes32 landId,
-        string ownerName,
-        string location,
-        uint256 area,
-        uint256 price,
-        address owner,
-        uint256 approvalDate,
-        string uploadedFiles
+        uint256 registerationId
     );
     event LandRegistrationRequestRejected(
         bytes32 landId,
@@ -123,15 +109,13 @@ contract EthLandRegistry {
         address from,
         address to,
         uint256 price,
-        string uploadedFiles,
-        uint256 approvalDate
+        uint256 requestId
     );
     event LandTransferRequestApproved(
         bytes32 landId,
         address from,
         address to,
         uint256 price,
-        string uploadedFiles,
         uint256 approvalDate
     );
     event LandTransferRequestRejected(
@@ -187,7 +171,7 @@ contract EthLandRegistry {
         uint256 _area,
         uint256 _price,
         string memory _uploadedFiles
-    ) public returns (bytes32, uint256) {
+    ) public {
         require(
             users[msg.sender] == UserTypes.LandOwner,
             "Only land owners can request for new land registration"
@@ -219,15 +203,11 @@ contract EthLandRegistry {
         );
         emit LandRegistrationRequest(
             _landId,
-            _ownerName,
             _location,
             _area,
-            _price,
             msg.sender,
-            0,
-            _uploadedFiles
+            registrationRequestCounter
         );
-        return (_landId, registrationRequestCounter);
     }
 
     // Land owner registration
@@ -285,21 +265,10 @@ contract EthLandRegistry {
         landOwners[_request.owner].landIds.push(_request.landId);
         emit LandRegistered(
             _request.landId,
-            _request.ownerName,
             _request.location,
             _request.area,
             _request.owner,
             block.timestamp
-        );
-        emit LandRegistrationRequestApproved(
-            _request.landId,
-            _request.ownerName,
-            _request.location,
-            _request.area,
-            _request.price,
-            _request.owner,
-            block.timestamp,
-            _request.uploadedFiles
         );
     }
 
@@ -358,8 +327,7 @@ contract EthLandRegistry {
             lands[_landId].owner,
             _to,
             _price,
-            _uploadedFiles,
-            0
+            transferRequestCounter
         );
     }
 
@@ -379,7 +347,6 @@ contract EthLandRegistry {
             _request.from,
             _request.to,
             _request.price,
-            _request.uploadedFiles,
             block.timestamp
         );
     }
@@ -621,6 +588,32 @@ contract EthLandRegistry {
             }
         }
         return _requests;
+    }
+
+    // Get all registered lands
+    function getAllLands() public view returns(
+        Land[] memory
+    ) {
+        Land[] memory _lands = new Land[](landCounter);
+        uint256 _index = 0;
+        for (uint256 i = 1; i <= landCounter; i++) {
+            _lands[_index] = lands[landRegistrationRequests[i].landId];
+            _index++;
+        }
+        return _lands;
+    }
+
+    // Get all locations of registered lands
+    function getAllLocations() public view returns(
+        string[] memory
+    ) {
+        string[] memory _locations = new string[](landCounter);
+        uint256 _index = 0;
+        for (uint256 i = 1; i <= landCounter; i++) {
+            _locations[_index] = lands[landRegistrationRequests[i].landId].location;
+            _index++;
+        }
+        return _locations;
     }
 
     // Get admin address
