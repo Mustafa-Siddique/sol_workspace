@@ -345,6 +345,16 @@ contract EthLandRegistry {
         lands[_request.landId].owner = _request.to;
         _request.approvalDate = block.timestamp;
         _request.status = Status.Approved;
+        landOwners[_request.from].landCount--;
+        landOwners[_request.to].landCount++;
+        landOwners[_request.to].landIds.push(_request.landId);
+        // Delete land from previous owner's landIds array
+        for (uint256 i = 0; i < landOwners[_request.from].landIds.length; i++) {
+            if (landOwners[_request.from].landIds[i] == _request.landId) {
+                delete landOwners[_request.from].landIds[i];
+                break;
+            }
+        }
         landTransferHistory[_request.landId].push(_request);
         emit LandTransferRequestApproved(
             _request.landId,
