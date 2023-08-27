@@ -311,6 +311,10 @@ contract EthLandRegistry {
             lands[_landId].owner != _to,
             "Land owner and new owner cannot be same"
         );
+        require(
+            users[_to] == UserTypes.LandOwner,
+            "Register new owner before transfering land"
+        );
         transferRequestCounter++;
         landTransferRequests[transferRequestCounter] = LandTransferRequest(
             _landId,
@@ -596,9 +600,11 @@ contract EthLandRegistry {
     ) {
         Land[] memory _lands = new Land[](landCounter);
         uint256 _index = 0;
-        for (uint256 i = 1; i <= landCounter; i++) {
-            _lands[_index] = lands[landRegistrationRequests[i].landId];
-            _index++;
+        for (uint256 i = 1; i <= registrationRequestCounter; i++) {
+            if (landRegistrationRequests[i].status == Status.Approved) {
+                _lands[_index] = lands[landRegistrationRequests[i].landId];
+                _index++;
+            }
         }
         return _lands;
     }
@@ -609,9 +615,11 @@ contract EthLandRegistry {
     ) {
         string[] memory _locations = new string[](landCounter);
         uint256 _index = 0;
-        for (uint256 i = 1; i <= landCounter; i++) {
-            _locations[_index] = lands[landRegistrationRequests[i].landId].location;
-            _index++;
+        for (uint256 i = 1; i <= registrationRequestCounter; i++) {
+            if (landRegistrationRequests[i].status == Status.Approved) {
+                _locations[_index] = lands[landRegistrationRequests[i].landId].location;
+                _index++;
+            }
         }
         return _locations;
     }
