@@ -355,21 +355,6 @@ contract EthLandRegistry {
                 break;
             }
         }
-        for (uint256 i = 0; i < landOwners[_request.from].landIds.length; i++) {
-            if (landOwners[_request.from].landIds[i] == bytes32(0)) {
-                for (uint256 j = i + 1; j < landOwners[_request.from]
-                    .landIds
-                    .length; j++) {
-                    landOwners[_request.from].landIds[j - 1] = landOwners[
-                        _request.from
-                    ].landIds[j];
-                }
-                break;
-            }
-        }
-        delete landOwners[_request.from].landIds[
-            landOwners[_request.from].landIds.length - 1
-        ];
         landTransferHistory[_request.landId].push(_request);
         emit LandTransferRequestApproved(
             _request.landId,
