@@ -179,10 +179,6 @@ contract Chaintusker is ReentrancyGuard {
             projects[_projectId].seller == address(0),
             "The project has already been offered"
         );
-        require(
-            msg.value == projects[_projectId].remainingBudget,
-            "Wrong amount submitted!"
-        );
         require(_seller != address(0), "Seller address can't be null");
         require(
             _milestoneRewards.length > 0,
@@ -195,6 +191,8 @@ contract Chaintusker is ReentrancyGuard {
             projects[_projectId].milestoneCompleted.push(false);
             _budget += _milestoneRewards[i];
         }
+        
+        require(msg.value == _budget, "Wrong amount submitted!");
 
         projects[_projectId].totalBudget = _budget;
         projects[_projectId].remainingBudget = _budget;
@@ -216,7 +214,6 @@ contract Chaintusker is ReentrancyGuard {
             projects[_projectId].seller == address(0),
             "The project has already been accepted"
         );
-
         projects[_projectId].seller = payable(msg.sender);
         delete projects[_projectId].offeredSeller;
         emit ProjectAccepted(_projectId, msg.sender);
