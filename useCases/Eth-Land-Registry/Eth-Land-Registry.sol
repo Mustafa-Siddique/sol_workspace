@@ -343,6 +343,7 @@ contract EthLandRegistry {
         );
         LandTransferRequest storage _request = landTransferRequests[_requestId];
         lands[_request.landId].owner = _request.to;
+        lands[_request.landId].ownerName = landOwners[_request.to].name;
         _request.approvalDate = block.timestamp;
         _request.status = Status.Approved;
         landOwners[_request.from].landCount--;
