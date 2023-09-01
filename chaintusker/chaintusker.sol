@@ -28,7 +28,7 @@ struct Project {
 
 contract Chaintusker is ReentrancyGuard {
     // Contract owner and dev address
-    address public owner;
+    address payable public owner;
     address payable public devWallet;
     address payable public marketingWallet;
 
@@ -62,12 +62,13 @@ contract Chaintusker is ReentrancyGuard {
     );
     event ModeratorAdded(address moderator);
     event ModeratorRemoved(address moderator);
+    event OwnershipTransferred(address newOwner);
     event ProjectDisputeRaised(bytes12 projectId);
     event PaymentReleased(bytes12 projectId, address recipient, uint256 amount);
     event PaymentRefunded(bytes12 projectId, address recipient, uint256 amount);
 
     constructor() {
-        owner = msg.sender;
+        owner = payable(msg.sender);
         userTypes[msg.sender] = UserType.SUPER_ADMIN;
     }
 
@@ -563,5 +564,14 @@ contract Chaintusker is ReentrancyGuard {
     function transferOwnership(address payable _newOwner) public onlyOwner {
         require(_newOwner != address(0), "Owner cannot be 0x0");
         owner = _newOwner;
+        userTypes[msg.sender] = UserType.UNREGISTERED;
+        userTypes[_newOwner] = UserType.SUPER_ADMIN;
+        emit OwnershipTransferred(_newOwner);
+    }
+
+    // Withdraw all funds from the contract in case of emergency
+    function withdrawAll() public onlyOwner {
+        require(address(this).balance > 0, "No funds to withdraw");
+        owner.transfer(address(this).balance);
     }
 }
