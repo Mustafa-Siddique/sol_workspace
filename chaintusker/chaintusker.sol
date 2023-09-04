@@ -269,10 +269,6 @@ contract Chaintusker is ReentrancyGuard {
                 projects[_projectId].milestoneRewards[_projectIndex],
             "Not enough funds to release payment"
         );
-        require(
-            msg.value == projects[_projectId].milestoneRewards[_projectIndex],
-            "Wrong amount submitted!"
-        );
 
         projects[_projectId].remainingBudget -= projects[_projectId]
             .milestoneRewards[_projectIndex];
