@@ -593,8 +593,8 @@ contract Chaintusker is ReentrancyGuard {
     // Transfer ownership of the contract
     function transferOwnership(address payable _newOwner) public onlyOwner {
         require(_newOwner != address(0), "Owner cannot be 0x0");
-        owner = _newOwner;
         userTypes[msg.sender] = UserType.UNREGISTERED;
+        owner = _newOwner;
         userTypes[_newOwner] = UserType.SUPER_ADMIN;
         emit OwnershipTransferred(_newOwner);
     }
