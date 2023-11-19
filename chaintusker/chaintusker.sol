@@ -27,6 +27,10 @@ struct Project {
 }
 
 contract Chaintusker is ReentrancyGuard {
+    // Contract pause state
+    bool public paused = false;
+    uint256 public pauseInstances = 0;
+
     // Contract owner and dev address
     address payable public owner;
     address payable public devWallet;
@@ -49,6 +53,7 @@ contract Chaintusker is ReentrancyGuard {
     uint256 public moderatorCount = 0;
 
     // Events
+    event Paused();
     event ProjectCreated(bytes12 projectId, address buyer);
     event ProjectOffered(bytes12 projectId, address seller);
     event ProjectAccepted(bytes12 projectId, address seller);
@@ -138,13 +143,17 @@ contract Chaintusker is ReentrancyGuard {
         );
         _;
     }
+    modifier pausedContract() {
+        require(paused == false, "Contract is paused");
+        _;
+    }
 
     // Create a new project
     function createProject(
         bytes12 _projectId,
         string memory _description,
         bytes32 _projectHash
-    ) public {
+    ) public nonReentrant pausedContract {
         require(_projectId.length > 0, "Project ID is required");
         require(bytes(_description).length > 0, "Description is required");
         require(_projectHash.length > 0, "Project hash is required");
@@ -170,6 +179,7 @@ contract Chaintusker is ReentrancyGuard {
         payable
         onlyBuyer(_projectId)
         nonReentrant
+        pausedContract
         projectExists(_projectId)
     {
         require(
@@ -192,7 +202,7 @@ contract Chaintusker is ReentrancyGuard {
             projects[_projectId].milestoneCompleted.push(false);
             _budget += _milestoneRewards[i];
         }
-        
+
         require(msg.value == _budget, "Wrong amount submitted!");
 
         projects[_projectId].totalBudget = _budget;
@@ -256,6 +266,7 @@ contract Chaintusker is ReentrancyGuard {
         public
         payable
         nonReentrant
+        pausedContract
         onlyBuyer(_projectId)
         projectExists(_projectId)
         isAssigned(_projectId)
@@ -319,7 +330,7 @@ contract Chaintusker is ReentrancyGuard {
         emit ProjectMilestoneCompleted(_projectId, _projectIndex);
     }
 
-    // Request a milestone payment
+    // Request a milestone payment event
     function requestMilestonePayment(
         bytes12 _projectId,
         uint256 index
@@ -340,6 +351,14 @@ contract Chaintusker is ReentrancyGuard {
         require(projects[_projectId].active == true, "Project is not active");
 
         emit ProjectMilestoneRequested(_projectId, index);
+    }
+
+    // ----------------- PAUSE -----------------
+    // Pause the contract
+    function pause() public onlyOwner {
+        paused = true;
+        pauseInstances = block.timestamp;
+        emit Paused();
     }
 
     // ----------------- GETTERS -----------------
@@ -386,6 +405,15 @@ contract Chaintusker is ReentrancyGuard {
     // Get Project Hash
     function getProjectHash(bytes12 _projectId) public view returns (bytes32) {
         return projects[_projectId].projectHash;
+    }
+
+    // Get contract state
+    function getContractState() public view returns (string memory) {
+        if (paused == true) {
+            return string(abi.encodePacked("Paused ", pauseInstances));
+        } else {
+            return "active";
+        }
     }
 
     // ----------------- CHANGES -----------------
@@ -507,41 +535,47 @@ contract Chaintusker is ReentrancyGuard {
 
     //  ----------------- TAX & Wallets -----------------
     // Set the tax percentage
-    function setMinDevFee(uint256 _minDevFee) public onlyOwner {
+    function setMinDevFee(uint256 _minDevFee) public onlyOwner pausedContract {
         require(_minDevFee > 0, "Tax cannot be 0");
         minDevFee = _minDevFee;
     }
 
-    function setMaxDevFee(uint256 _maxDevFee) public onlyOwner {
+    function setMaxDevFee(uint256 _maxDevFee) public onlyOwner pausedContract {
         require(_maxDevFee > 0, "Tax cannot be 0");
         maxDevFee = _maxDevFee;
     }
 
-    function setMinMarketFee(uint256 _minMarketFee) public onlyOwner {
+    function setMinMarketFee(
+        uint256 _minMarketFee
+    ) public onlyOwner pausedContract {
         require(_minMarketFee > 0, "Tax cannot be 0");
         minMarketingFee = _minMarketFee;
     }
 
-    function setMaxMarketFee(uint256 _maxMarketFee) public onlyOwner {
+    function setMaxMarketFee(
+        uint256 _maxMarketFee
+    ) public onlyOwner pausedContract {
         require(_maxMarketFee > 0, "Tax cannot be 0");
         maxMarketingFee = _maxMarketFee;
     }
 
     // Set the wallet addresses
-    function setDevWallet(address payable _devWallet) public onlyOwner {
+    function setDevWallet(
+        address payable _devWallet
+    ) public onlyOwner pausedContract {
         require(_devWallet != address(0), "Wallet cannot be 0x0");
         devWallet = _devWallet;
     }
 
     function setMarketingWallet(
         address payable _marketingWallet
-    ) public onlyOwner {
+    ) public onlyOwner pausedContract {
         require(_marketingWallet != address(0), "Wallet cannot be 0x0");
         marketingWallet = _marketingWallet;
     }
 
     // add a new moderator
-    function addModerator(address _moderator) public onlyOwner {
+    function addModerator(address _moderator) public onlyOwner pausedContract {
         require(_moderator != address(0), "Moderator cannot be 0x0");
         userTypes[_moderator] = UserType.MODERATOR;
         moderatorCount++;
@@ -568,6 +602,11 @@ contract Chaintusker is ReentrancyGuard {
     // Withdraw all funds from the contract in case of emergency
     function withdrawAll() public onlyOwner {
         require(address(this).balance > 0, "No funds to withdraw");
+        require(paused == true, "Contract is not paused");
+        require(
+            block.timestamp > pauseInstances + 172800,
+            "Wait 48 hours before withdrawing funds"
+        );
         owner.transfer(address(this).balance);
     }
 }
