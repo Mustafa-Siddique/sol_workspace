@@ -1,4 +1,4 @@
-// Created by: Cadilacs (https://cadillacs.in)
+// Created by: Cadilacs Blockchain Development Team
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
@@ -353,12 +353,19 @@ contract Chaintusker is ReentrancyGuard {
         emit ProjectMilestoneRequested(_projectId, index);
     }
 
-    // ----------------- PAUSE -----------------
+    // ----------------- PAUSE / RESUME -----------------
     // Pause the contract
-    function pause() public onlyOwner {
+    function pause() public onlyOwner pausedContract {
         paused = true;
         pauseInstances = block.timestamp;
         emit Paused();
+    }
+
+    // Resume the contract
+    function resume() public onlyOwner {
+        require(paused == true, "Contract is not paused");
+        paused = false;
+        pauseInstances = 0;
     }
 
     // ----------------- GETTERS -----------------
